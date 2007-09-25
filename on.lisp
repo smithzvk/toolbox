@@ -942,43 +942,39 @@
 ;;;; Multiple value iteration ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun mvdo-rebind-gen (rebinds)
-  (cond ((null rebinds) nil)
+(with-compilation-unit (:override nil)
+  (defmacro mvdo* (parm-cl test-cl &body body)
+    (mvdo-gen parm-cl parm-cl test-cl body) )
+
+  (defun mvdo-rebind-gen (rebinds)
+    (cond ((null rebinds) nil)
         ((< (length (car rebinds)) 3)
          (mvdo-rebind-gen (cdr rebinds)) )
         (t (cons (list (if (atom (caar rebinds))
-                         'setq
-                         'multiple-value-setq )
+                           'setq
+                           'multiple-value-setq )
                        (caar rebinds)
                        (third (car rebinds)) )
                  (mvdo-rebind-gen (cdr rebinds)) ))))
 
-(defun mvdo-gen (binds rebinds test body)
-  (if (null binds)
-    (let ((label (gensym "MVDO-GEN-")))
-      `(prog nil
-             ,label
-             (if ,(car test)
-               (return (progn ,@(cdr test))) )
-             ,@body
-             ,@(mvdo-rebind-gen rebinds)
-             (go ,label) ))
-    (let ((rec (mvdo-gen (cdr binds) rebinds test body)))
-      (let ((var/s (caar binds)) (expr (cadar binds)))
-        (if (atom var/s)
-          `(let ((,var/s ,expr)) ,rec)
-          `(multiple-value-bind ,var/s ,expr ,rec) )))))
+  (defun mvdo-gen (binds rebinds test body)
+    (if (null binds)
+        (let ((label (gensym "MVDO-GEN-")))
+          `(prog nil
+                 ,label
+                 (if ,(car test)
+                     (return (progn ,@(cdr test))) )
+                 ,@body
+                 ,@(mvdo-rebind-gen rebinds)
+                 (go ,label) ))
+        (let ((rec (mvdo-gen (cdr binds) rebinds test body)))
+          (let ((var/s (caar binds)) (expr (cadar binds)))
+            (if (atom var/s)
+              `(let ((,var/s ,expr)) ,rec)
+              `(multiple-value-bind ,var/s ,expr ,rec) ))))) )
 
-(defmacro mvdo* (parm-cl test-cl &body body)
-  (mvdo-gen parm-cl parm-cl test-cl body) )
-
-(defun shuffle (x y)
-  (cond ((null x) y)
-        ((null y) x)
-        (t (list* (car x) (car y)
-                  (shuffle (cdr x) (cdr y)) ))))
-
-(defmacro mvpsetq (&rest args)
+(with-compilation-unit (:override nil)
+  (defmacro mvpsetq (&rest args)
   (let* ((pairs (group args 2))
          (syms  (mapcar #'(lambda (p)
                             (mapcar #'(lambda (x) 
@@ -988,18 +984,25 @@
                         pairs )))
     (labels ((rec (ps ss)
                (if (null ps)
-                 `(setq ,@(mapcan #'(lambda (p s)
-                                      (shuffle (mklist (car p)) s))
-                                      pairs syms ))
-                 (let ((body (rec (cdr ps) (cdr ss))))
-                   (let ((var/s (caar ps))
-                         (expr (cadar ps)) )
-                     (if (consp var/s)
-                       `(multiple-value-bind ,(car ss) ,expr
-                          ,body )
-                       `(let ((,@(car ss) ,expr))
-                          ,body )))))))
+                   `(setq ,@(mapcan #'(lambda (p s)
+                                        (shuffle (mklist (car p)) s))
+                                    pairs syms ))
+                   (let ((body (rec (cdr ps) (cdr ss))))
+                     (let ((var/s (caar ps))
+                           (expr (cadar ps)) )
+                       (if (consp var/s)
+                           `(multiple-value-bind ,(car ss) ,expr
+                              ,body )
+                           `(let ((,@(car ss) ,expr))
+                              ,body )))))))
       (rec pairs syms) )))
+
+  (defun shuffle (x y)
+    "Interlaces two lists together (think of it as a zipper)"
+    (cond ((null x) y)
+          ((null y) x)
+          (t (list* (car x) (car y)
+                    (shuffle (cdr x) (cdr y)) )))) )
 
 (defmacro mvdo (binds (test &rest result) &body body)
   (let ((label (gensym "MVDO-"))
@@ -1021,14 +1024,18 @@
                       (mappend #'mklist temps) )
              ,label
              (if ,test
-               (return (progn ,@result)) )
+                 (return (progn ,@result)) )
              ,@body
              (mvqsetq ,@(mapcan #'(lambda (b)
                                     (if (third b)
-                                      (list (car b)
-                                            (third b) )))
+                                        (list (car b)
+                                              (third b) )))
                                 binds ))
              (go ,label) ))))
+
+#| Examples
+
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Generalized varaibles ;;;;
@@ -1130,8 +1137,6 @@
 
 |#
 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Macro-defining macros ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1153,228 +1158,6 @@
   `(progn
      ,@(mapcar #'(lambda (p) `(propmacro ,p))
                props )))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Anaphoric macros ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmacro aif (test-form then-form &optional else-form)
-  `(let ((it ,test-form))
-     (if it ,then-form ,else-form) ))
-
-(defmacro awhen (test-form &body body)
-  `(aif ,test-form
-        (progn ,@body) ))
-
-(defmacro awhile (expr &body body)
-  `(do ((it ,expr ,expr))
-     ((not it))
-     ,@body ))
-
-(defmacro aand (&rest args)
-  (cond ((null args) t)
-        ((null (cdr args)) (car args))
-        (t `(aif ,(car args) (aand ,@(cdr args)))) ))
-
-(defmacro acond (&rest clauses)
-  (if (null clauses)
-    nil
-    (let ((cl1 (car clauses))
-          (sym (gensym "ACOND-")) )
-      `(let ((,sym ,(car cl1)) )
-         (if ,sym
-           (let ((it ,sym)) ,@(cdr cl1))
-           (acond ,@(cdr clauses)) )))))
-
-(defmacro alambda (parms &body body)
-  `(labels ((self ,parms ,@body))
-     #'self ))
-
-(defmacro ablock (tag &rest args)
-  `(block ,tag
-     ,(funcall (alambda (args)
-                 (case (length args)
-                   (0 nil)
-                   (1 (car args))
-                   (t `(let ((it ,(car args)))
-                         ,(self (cdr args)) ))))
-               args )))
-
-#| Examples
-
-(macroexpand-1
-  '(aif (member 1 '(2 3 1 4 5))
-        (reverse it) ))
-
-|#
-
-;;; Anaphoric macros that check secondary return values for success
-
-(defmacro aif2 (test &optional then else)
-  (let ((win (gensym "AIF2-")))
-    `(multiple-value-bind (it ,win) ,test
-       (if (or it ,win) ,then ,else) )))
-
-(defmacro awhen2 (test &body body)
-  `(aif2 ,test
-         (progn ,@body) ))
-
-(defmacro awhile2 (test &body body)
-  (let ((flag (gensym "AWHILE2-")))
-    `(let ((,flag t))
-       (while ,flag
-         (aif ,test
-              (progn ,@body)
-              (setq ,flag nil) )))))
-
-(defmacro acond2 (&rest clauses)
-  (if (null clauses)
-      nil
-      (let ((cl1 (car clauses))
-            (val (gensym "ACOND2-"))
-            (win (gensym "ACOND2-")) )
-        `(multiple-value-bind (,val ,win) ,(car cl1)
-           (if (or ,val ,win)
-               (let ((it ,val)) ,@(cdr cl1))
-               (acond2 ,@(cdr clauses)) )))))
-
-#| Examples
-
-;;; The meat of a memoized function
-(macroexpand
-  '(aif2 (gethash args hash)
-         it
-         (setf (gethash args hash)
-               (funcall fn args) )))
-
-(macroexpand
-  '(awhen2 (gethash key hash)
-     it ))
-
-(macroexpand
-  '(awhile2 (gethash key hash)
-     (do-some-stuff)
-     (maybe-set (gethash key hash)) ))
-
-(macroexpand
-  '(acond2 ((test1) it)
-           ((test2) (not it))
-           (t       'goodbye) ))
-
-|#
-
-(with-compilation-unit (:override nil)
-
-  (defmacro t-it (&body body)
-    "A macro that will change the success value of a predicate to an
-    arbitrary value of your choosing.  This is helpful for pedicates 
-    that return t and not something more useful, making them annoying 
-    to use, expecially with anaphoric macros."
-    (let ((it-sym (gensym "I-IT-")))
-      (multiple-value-bind (new-body ret-val)
-                            (extract-it-call body it-sym)
-        `(let ((,it-sym ,ret-val))
-           (if ,@new-body ,it-sym) ))))
-
-  (defun extract-it-call (tree it-val)
-    (cond ((atom tree) (values tree nil))
-          ((eql (car tree) :it) (values it-val (cadr tree)))
-          (t (multiple-value-bind (body1 val1) (extract-it-call (car tree) it-val)
-               (multiple-value-bind (body2 val2) (extract-it-call (cdr tree) it-val)
-                 (values (cons body1 body2) (or val1 val2)) ))))))
-
-#| Examples
-
-(extract-it-call '(> (+ 3 (it (+ 2 5))) 4) (gensym))
-
-(macroexpand-1 '(t-it (> (+ 3 (:it (+ 2 3))) 2)))
-
-(aif (t-it (> (+ 3 (:it (+ 2 3))) 2))
-     (- it 5)
-     nil )
-
-(t-it (:it (read)))
-
-(let ((seq1 '(1 2 3 4))
-      (seq2 '(1 2 3))
-      (seq3 '(5 4 3)) )
-  (aif (t-it (> (:it (length seq1)) (length seq2)))
-       (if (> it (length seq3))
-           (aif (t-it (not (= 0 (:it (car (last seq1))))))
-                it ))))
-
-|#
-
-(with-compilation-unit (:override nil)
-
-  (defmacro a+ (&rest args)
-    "`it' bound to the previous term in the addition"
-    (a+expand args nil) )
-
-  (defun a+expand (args syms)
-    (if args
-        (let ((sym (gensym "A+EXPAND-")))
-          `(let* ((,sym ,(car args))
-                  (it ,sym) )
-             ,(a+expand (cdr args)
-                        (append syms (list sym)) )))
-        `(+ ,@syms) )) )
-
-(with-compilation-unit (:override nil)
-
-  (defmacro alist (&rest args)
-    "`it' bound to the previous term in the list"
-    (alist-expand args nil) )
-
-  (defun alist-expand (args syms)
-    (if args
-        (let ((sym (gensym "ALIST-EXPAND-")))
-          `(let* ((,sym ,(car args))
-                  (it ,sym) )
-             ,(alist-expand (cdr args)
-                            (append syms (list sym)) )))
-        `(list ,@syms) )) )
-
-(with-compilation-unit (:override nil)
-
-  (defmacro defanaph (name &key calls (rule :all))
-    "A macro for automating anahporic macro definitions."
-    (let* ((opname (or calls (pop-symbol name)))
-           (body (case rule
-                   (:all `(anaphex1 args '(,opname)))
-                   (:first `(anaphex2 ',opname args))
-                   (:place `(anaphex3 ',opname args)) )))
-      `(defmacro ,name (&rest args)
-         ,body )))
-
-  (defun anaphex1 (args expr)
-    (if args
-        (let ((sym (gensym "ANAPHEX1-")))
-          `(let* ((,sym ,(car args))
-                  (it ,sym) )
-             ,(anaphex (cdr args)
-                       (append expr (list sym)) )))
-        expr ))
-
-  (defun anaphex2 (op args)
-    `(let ((it ,(car args))) (,op it ,@(cdr args))) )
-
-  (defun anaphex3 (op args)
-    `(_f (lambda (it) (,op it ,@(cdr args))) ,(car args)) )
-
-  (defun pop-symbol (sym)
-    (intern (subseq (symbol-name sym) 1)) ) )
-
-#| Examples
-
-;;; These are not the most useful, perhaps they are better as examples
-(a+ 1 2 (/ 1 it) 4 (* 0.1 it))
-(alist 1 (+ it 1) (+ it 1))
-
-(pop-symbol 'aif)
-(pop-symbol 'acond)
-
-|#
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;;;; Read macros ;;;;

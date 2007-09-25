@@ -208,7 +208,7 @@
                             (append syms (list sym)) )))
         `(list ,@syms) )) )
 
-(with-compilation-unit (:override nil)
+(with-compilation-unit (:override t)
 
   (defmacro defanaph (name &key calls (rule :all))
     "A macro for automating anahporic macro definitions."

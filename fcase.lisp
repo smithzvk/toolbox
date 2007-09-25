@@ -2,6 +2,7 @@
 ;;;; functions.  It was stolen from the CLISP source.  For the most part, it
 ;;;; is a series of nested cond statements playing dress-up.
 
+(in-package :toolbox)
 
 #-clisp
 (defun case-expand (whole-form form-name test keyform clauses)

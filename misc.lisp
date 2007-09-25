@@ -1,36 +1,41 @@
 
+(in-package :toolbox)
+
 ;;;; by-elts : cons-free, implicit iteration over vectors
 
-(defun quotep (form)
-  (and (listp form) (eql 'quote (car form))) )
+(with-compilation-unit (:override nil)
+  (defmacro by-elts ((vecs n-elts &key (elt-type t)) &body body)
+    (let ((i (gensym "BY-ELTS-")))
+      (condlet (((integerp n-elts) (var-type `(and fixnum (integer 0 ,n-elts)))
+                                   (vars     `(,i)) )
+                (t                 (var-type 'fixnum)
+                                   (vars     `(,i ,n-elts)) ))
+               `(dotimes (,i ,n-elts)
+                  (declare ,`(type ,var-type ,@vars))
+                  ,@(insert-arefs body vecs i elt-type) ))))
 
-(defun needs-eval? (form)
-  (not (or (atom form) (quotep form))) )
+  (defun quotep (form)
+    (and (listp form) (eql 'quote (car form))) )
 
-(defun insert-arefs (tree vectors i elt-type)
-  (if (null tree)
-      nil
-      (condlet (((member (car tree) vectors :test #'equal)
-                 ; This is one of our vectors.
-                 (curr (list `(the ,elt-type (aref ,(car tree) ,i)))) )
-                ((needs-eval? (car tree))
-                 ; This is a complex form, we need to recurse down
-                 (curr (list (insert-arefs (car tree) vectors i elt-type))) )
-                (t ; Otherwise, this is a simple case, just leave it unchanged
-                  (curr (list (car tree)))) )
-        (append curr (insert-arefs (cdr tree) vectors i elt-type)) )))
+  (defun needs-eval? (form)
+    (not (or (atom form) (quotep form))) )
 
-(defmacro by-elts ((vecs n-elts &key (elt-type t)) &body body)
-  (let ((i (gensym "BY-ELTS-")))
-    (condlet (((integerp n-elts) (var-type `(and fixnum (integer 0 ,n-elts)))
-                                 (vars     `(,i)) )
-              (t                 (var-type 'fixnum)
-                                 (vars     `(,i ,n-elts)) ))
-      `(dotimes (,i ,n-elts)
-         (declare ,`(type ,var-type ,@vars))
-         ,@(insert-arefs body vecs i elt-type) ))))
+  (defun insert-arefs (tree vectors i elt-type)
+    (if (null tree)
+        nil
+        (condlet (((member (car tree) vectors :test #'equal)
+                   ; This is one of our vectors.
+                   (curr (list `(the ,elt-type (aref ,(car tree) ,i)))) )
+                  ((needs-eval? (car tree))
+                   ; This is a complex form, we need to recurse down
+                   (curr (list (insert-arefs (car tree) vectors i elt-type))) )
+                  (t ; Otherwise, this is a simple case, just leave it unchanged
+                    (curr (list (car tree)))) )
+                 (append curr (insert-arefs (cdr tree) vectors i elt-type)) )))
+  )
 
 #| Examples
+
 (let ((x #(1 2 3 4))
       (y #(5 4 3 2)) )
   (by-elts ((x y) 4 :elt-type integer)
@@ -81,7 +86,10 @@
   (print line) )
 )
 
-(do-file-by #'read ((open #p"scratch.lisp") line)
+(do-file-by #'read-line (#p"scratch.lisp" line)
+  (print line) )
+
+(do-file-by #'read (#p"scratch.lisp" line)
   (print line) )
 
 |#
@@ -110,4 +118,9 @@
 
 |#
 
+(defun copy-array (array)
+  (let ((dims (array-dimensions array)))
+    (adjust-array
+      (make-array dims :displaced-to array)
+      dims )))
 

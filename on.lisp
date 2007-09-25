@@ -6,6 +6,8 @@
 ;;;; Utility functions ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(in-package :toolbox)
+
 ;;; List utilities
 (proclaim '(inline last1 single append1 conc1 mklist))
 
@@ -102,8 +104,15 @@
     (and rest (member x rest :test test)) ))
 
 #| Examples
-;;; Is the first occurence of arg1 before/after the first occurence of arg2?
 
+;;; Similar to find-if, member-if but returns the evaluation as the 
+;;; second argument
+(find2 #'evenp '(1 2 3 4 5))
+(find2 (cut (member 5 <>)) '((1 2 3) (2 7 6 3) (3 5 3) (4) (5 9 2)))
+(find-if #'evenp '(1 2 3 4 5))
+(member-if #'evenp '(1 2 3 4 5))
+
+;;; Is the first occurence of arg1 before/after the first occurence of arg2?
 (before 'a 'b '(1 2 3 b 5 a))
 (before 'a 'b '(1 a 2 3 b 5 a))
 
@@ -116,12 +125,32 @@
   (member obj (cdr (member obj lst :test test))
           :test test ))
 
+(defun split-on (fn lst)
+  (unless (null lst)
+    (multiple-value-bind (on off) (split-on fn (cdr lst))
+      (if (funcall fn (car lst))
+          (values (cons (car lst) on) off)
+          (values on (cons (car lst) off)) ))))
+
 (defun split-if (fn lst)
   (let ((acc nil))
     (do ((src lst (cdr src)))
       ((or (null src) (funcall fn (car src)))
        (values (nreverse acc) src) )
       (push (car src) acc) )))
+
+#| Examples
+
+(duplicate 1 '(1 2 1 3))
+(duplicate 2 '(1 2 1 3))
+
+(split-on #'oddp '(1 2 3 4))
+
+(split-if #'oddp '(2 2 3 4))
+
+(split-if (cut (> <> 4)) '(1 2 3 4 5 6 7 8))
+
+|#
 
 (defun most (fn lst)
   (if (null lst)
@@ -158,18 +187,32 @@
                  (push obj result) ))))
       (values (nreverse result) max) )))
 
+#| Examples
+
+(most #'length '((a b) (c d e) (f) (g h i)))
+
+(best #'> '(1 2 3 4 5 3 2))
+
+(mostn #'length '((a b) (a b c) (a) (e f g)))
+
+|#
+
 ;;; Mapping utilities
 
 (defun map-> (fn start test-fn succ-fn)
+  "Create a list with 'fn' applied to it's values which start at 'start' with
+  each successive value given by 'succ-fn' applyed to the value until 'test-fn'
+  applied to the value returns true."
   (do ((i start (funcall succ-fn i))
        (result nil))
     ((funcall test-fn i) (nreverse result))
     (push (funcall fn i) result) ))
 
 (defun mapa-b (fn a b &optional (step 1))
+  "Create list with values from 'a' to 'b' spaced by 'step' with 'fn' applied to it"
   (do ((i a (+ i step))
        (result nil) )
-    ((> i b) (nreverse result))
+      ((> i b) (nreverse result))
     (push (funcall fn i) result) ))
 
 (defun map1-n (fn n)
@@ -195,6 +238,38 @@
            #'(lambda (&rest args)
                (apply #'rmapcar fn args) )
            args )))
+
+#| Examples
+
+(map0-n #'1+ 5)
+
+; Can only map unary functions over the range)
+(mapa-b #'identity 1 8)
+
+(mapa-b #'+ 1 4 0.2d0)
+
+(map-> #'/              ; function to map on (once again unary only)
+       1                ; start value
+       #.(cut (> <> 3)) ; exit clause
+       #'1+ )           ; next element
+
+; Not really sure what this is good for
+(mappend #'identity '((1 3 4) (2 10 11) (3 2 1) (4 5 6)))
+
+; Cool stuff you can do with cut
+(mapcar (cut (apply #'+ <>)) '((1 2 3) (4 5 6)))
+(mapcar (cut (reduce #'+ <>)) '((1 2 3) (4 5 6)))
+
+;Series code, doesn't seem to work?
+;(collect (#Mfn (scan-range :from a :upto b :by c)))
+
+; Mapping over several lists without consing
+(mapcars #'sqrt '(1 2 3 4) '(4 5 6 7)) ; == (mapcar #'sqrt (append '(1 2 3 4) '(4 5 6 7)))
+
+; Recursive mapcar
+(rmapcar #'+ '(1 (2 (3) 4)) '(10 (20 (30) 40)))
+
+|#
 
 ;;; break loop stuff
 
@@ -222,6 +297,7 @@
 ;;; Symbol/string utilities
 
 (defun mkstr (&rest args)
+  "MaKe STRing"
   (with-output-to-string (s)
     (dolist (a args) (princ a s)) ))
 
@@ -237,6 +313,7 @@
        (symbol-name sym) ))
 
 #| Examples
+
 (mkstr 'hello)
 (mkstr 1984)
 (mkstr '(1 2 3 4))
@@ -261,6 +338,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun memoize (fn &key (size nil size-p) (test #'equalp))
+  "Function memoizer"
   (let ((cache (if size-p
                    (make-hash-table :size size :test test)
                    (make-hash-table :test test)) ))
@@ -271,7 +349,26 @@
               (setf (gethash args cache)
                     (apply fn args) ))))))
 
+#| Examples
+
+;;;See string-algs.lisp for dynamic programming examples
+
+(defun slow-func (x)
+  (sleep 2)
+  x )
+
+(setf (symbol-function 'slow-func) (memoize #'slow-func))
+
+(slow-func 1)
+(slow-func 2)
+
+(slow-func 1) ; The sleep is not executed, it just remembers the answer and returns it
+(slow-func 2)
+
+|#
+
 (defun compose (&rest fns)
+  "Function compose"
   (if fns
     (let ((fn1 (last1 fns))
           (fns (butlast fns)) )
@@ -282,6 +379,7 @@
     #'identity ))
 
 (defun fif (if then &optional else)
+  "Functional if"
   #'(lambda (x)
       (if (funcall if x)
         (funcall then x)
@@ -289,6 +387,7 @@
 
 ;;; Function intersection
 (defun fint (fn &rest fns)
+  "Function INTersection"
   (if (null fns)
     fn
     (let ((chain (apply #'fint fns)))
@@ -297,6 +396,7 @@
 
 ;;; Function union
 (defun fun (fn &rest fns)
+  "Function UNion"
   (if (null fns)
       fn
       (let ((chain (apply #'fun fns)))
@@ -304,6 +404,12 @@
             (or (funcall fn x) (funcall chain x)) ))))
 
 #| Examples
+
+(mapcar (compose (cut (list 'begin <> 'end)) #'1+) '(1 2 3 4 5))
+
+(mapcar (compose #'sqrt ; takes 1 argument
+                 #'/ )  ; takes 2 arguments
+        '(1 2 3 4 5) '(5 4 3 2 1) )
 
 ; Move up to the next even integer
 (funcall (fif #'oddp #'1+ #'identity) 4)
@@ -317,6 +423,7 @@
 |#
 
 (defun lrec (rec &optional base)
+  "List RECursion function generator"
   (labels ((self (lst)
              (if (null lst)
                (if (functionp base)
@@ -350,6 +457,7 @@
 |#
 
 (defun ttrav (rec &optional (base #'identity))
+  "Tree TRAVerser function generator"
   (labels ((self (tree)
              (if (atom tree)
                  (if (functionp base)
@@ -361,6 +469,7 @@
     #'self ))
 
 (defun trec (rec &optional (base #'identity))
+  "Tree RECursion function generator"
   (labels 
     ((self (tree)
        (if (atom tree)
@@ -381,12 +490,14 @@
 (ttrav #'cons)
 
 ;count-leaves
-(ttrav #'(lambda (l r) (+ l (or r l))) 1)
+(ttrav #'(lambda (l r) (+ l (or r 1))) 1)
 
 ;flatten
 (ttrav #'nconc #'mklist)
 
 (funcall * '(1 2 3 (4 5)))
+
+(funcall (ttrav #'cons #'1+) '(1 2 3 (4 5)))
 
 ;flatten
 (trec #'(lambda (o l r) (or (funcall l) (funcall r)))
@@ -403,8 +514,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (with-compilation-unit (:override nil)
-
-  (defmacro fn (expr) `#',(rbuild expr))
+  (defmacro fn (expr)
+    ""
+    `#',(rbuild expr) )
 
   (defun rbuild (expr)
     (if (or (atom expr) (eq (car expr) 'lambda))
@@ -428,7 +540,8 @@
                          `(,(rbuild (car fns))
                             ,(rec (cdr fns)) )
                          g )))
-            (rec fns) )))))
+            (rec fns) ))))
+  )
 
 (defmacro alrec (rec &optional base)
   (let ((gfn (gensym "ALREC-")))
@@ -451,51 +564,71 @@
 (defmacro on-trees (rec base &rest trees)
   `(funcall (atrec ,rec ,base) ,@trees) )
 
-(defmacro cute ((fn &rest args))
-  (labels ((gensym? (sym) (and (symbolp sym) (not (symbol-package sym))))
-           (get-gensyms (n) (cond ((= n 0) nil)
-                                  (t (cons (gensym "CUTE-") (get-gensyms (1- n)))) ))
-           (replace-slots (args)
-             (cond ((null args) nil)
-                   ((eql (car args) '<>)
-                    (cons (gensym "CUTE-") (replace-slots (cdr args))) )
-                   (t (cons (car args) (replace-slots (cdr args)))) )))
-    (let ((arglist (replace-slots args)))
-      `(let ,(mapcar #'list (get-gensyms (length arglist))
-                            (remove-if #'gensym? arglist) )
-         (lambda ,(remove-if-not #'gensym? arglist)
-           (funcall #',fn ,@arglist) )))))
+;;; Cut (Common Lisp Currying like behavior)
+(with-compilation-unit (:override nil)
+  (defmacro cut ((fn &rest args))
+    (let ((new-args (get-cut-params args)))
+      `(let ,(remove-if (fun (compose #'quotep #'cadr) #'contains-cut-slot) new-args)
+         (lambda ,(mapcar #'car (remove-if-not #'contains-cut-slot new-args))
+           (funcall #',fn
+                    ,@(mapcar #'(lambda (x)
+                                  (cond ((quotep (cadr x))
+                                         (cadadr x) )
+                                        ((or (not (contains-cut-slot (cadr x)))
+                                             (eql '<> (cadr x)) )
+                                         (car x) )
+                                        (t (replace-cut-slots (cadr x) (car x))) ))
+                              new-args ))))))
 
-(defmacro cut ((fn &rest args))
-  (labels ((slot? (sym) (eq sym '<>))
-           (get-new-args (args)
-             (cond ((null args) nil)
-                   ((slot? (car args)) (cons (gensym "CUT-")
-                                             (get-new-args (cdr args)) ))
-                   (t (get-new-args (cdr args))) ))
-           (replace-slots (args gensyms)
-             (cond ((null args) nil)
-                   ((eql (car args) '<>)
-                    (cons (car gensyms) (replace-slots (cdr args) (cdr gensyms))) )
-                   (t (cons (car args) (replace-slots (cdr args) gensyms))) )))
-    (let* ((new-args (get-new-args args))
-           (arglist (replace-slots args new-args)) )
-      `(lambda ,new-args (funcall #',fn ,@arglist) ))))
+  (defun contains-cut-slot (tree)
+    (funcall
+      (ttrav #'(lambda (l r) (or l r))
+             #'(lambda (x) (eql x '<>)) )
+      tree ))
 
-(defun split-on (fn lst)
-  (unless (null lst)
-    (multiple-value-bind (on off) (split-on fn (cdr lst))
-      (if (funcall fn (car lst))
-          (values (cons (car lst) on) off)
-          (values on (cons (car lst) off)) ))))
+  (defun replace-cut-slots (tree binding)
+    (funcall
+      (ttrav #'(lambda (l r) (cons l r))
+             #'(lambda (x) (cond ((eql x '<>) binding)
+                                 (t x) )))
+      tree ))
 
-(defmacro cut2 ((fn &rest args))
-  (labels ((slot? (sym) (eq sym '<>)))
-    (multiple-value-bind (slots vals)
-                         (split-on #'slot? args)
-      (list slots vals) )))
+  (defun get-cut-params (args)
+    (mapcar #'list
+            (map-into
+              (make-list (length args))
+              #'(lambda () (gensym "CUT-")) )
+            args ))
+  )
 
-(split-on #'oddp '(1 2 3 4 5))
+#| Examples
+
+;;; You can use it to automate function definition, but then again
+;;; you shouldn't have to for the most part anymore.
+(macroexpand-1 '(cut (+ 3 <>)))
+(setf (symbol-function 'add3) (cut (+ 3 <>)))
+(add3 4)
+
+(funcall #.(compose #'sqrt (cut (/ 3 <>))) 323)
+
+(mapcar (cut (list <> (list <> 3))) '(1 2 3) '(4 5 6))
+
+(mapcar (compose #'sqrt (cut (/ 3 <>))) '(1 2 3 4 5))
+
+;;; Use quote to force evaluation of form every invocation (for 
+;;; non-functional code)
+(macroexpand-1 '(cut (/ <> '(non-func 3 4))))
+
+(with-open-file (f-in #p"scratch.lisp")
+  (mapcar (cut (list <> (read f-in))) '(first second third)) )
+(with-open-file (f-in #p"scratch.lisp")
+  (mapcar (cut (list <> '(read f-in))) '(first second third)) )
+
+(macroexpand-1 '(cut (func <> 2 (1+ <>) (+ 1 2) 3)))
+
+(funcall (cut (identity (mvl (funcall <>)))) (cut (floor 1.5)))
+
+|#
 
 #| Examples
 
@@ -503,7 +636,7 @@
   '(cut (list <> 1 (+ 1 1))) )
 
 (macroexpand-1
-  `(cut2 (list <> 1 2 3 <>)) )
+  '(cut (list <> 1 2 3 <>)) )
 
 (let ((a 5))
   (mapcar (cut (list a <> 1)) '(1 2 3 4)) )
@@ -513,6 +646,27 @@
 (mapcar (compose (cut (cons 'hello <>)) #'list) '(how are you))
 
 (funcall #.(cut (+ 1 pi 43 <>)) 2)
+
+|#
+
+#|
+
+(defmacro t->argn (n form)
+  (with-gensyms (ret "T->ARGN-")
+    `(let ((,ret ,(nth n form)))
+       (if ,form ,ret) )))
+
+(defun permute-args (
+
+(defmacro fill-in (val &body body)
+  `(let ((__ ,val))
+     (
+
+(macroexpand-1 '(t->argn 1 (> 4 3)))
+
+(let ((seq1 '(1 2 3 4 5))
+      (seq2 '(4 3 2 1)) )
+  (t->argn 2 (< (length seq1) (length seq2))) )
 
 |#
 
@@ -545,12 +699,30 @@
 
 (force (delay (+ 1 1)))
 
-Examples |#
+(defun sinc (x)
+  (let ((arg (delay (/ (sin x) x))))
+    (if (not (= 0 x))
+        (force arg)
+        1 )))
+
+(map-into (make-array 10) #'sinc (mapa-b #'identity 0 2 .2))
+
+;;; Delaying input to make a function based if
+(defun if-func (pred then else)
+  (if (force pred)
+      (force then)
+      (force else) ))
+
+(if-func t   (delay (print 'then)) (delay (print 'else)))
+(if-func nil (delay (print 'then)) (delay (print 'else)))
+
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Classic macros ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; Looping (these names conflict with every looping package in existence)
 (defmacro while (test &body body)
   `(do ()
      ((not ,test))
@@ -568,17 +740,31 @@ Examples |#
        ((> ,var ,gstop))
        ,@body )))
 
+;;; conditional with automatic bind
 (defmacro when-bind ((var expr) &body body)
+  "Like when but with a binding to a variable 'var' (also see awhen)"
   `(let ((,var ,expr))
      (when ,var
        ,@body )))
 
 (defmacro when-bind* (binds &body body)
+  "Like when-bind but with multiple binds"
   (if (null binds)
     `(progn ,@body)
     `(let (,(car binds))
        (if ,(caar binds)
          (when-bind* ,(cdr binds) ,@body) ))))
+
+#| Examples
+
+(when-bind (x 'a) x)
+
+(when-bind* ((var1 (member 'a '(f g a b d)))
+             (var2 (member 'd var1))
+             (var3 (< 4 7)) )
+  (values var1 var2 var3) )
+
+|#
 
 (defmacro with-gensyms (syms &body body)
   (cond ((stringp (last1 syms))
@@ -605,32 +791,34 @@ Examples |#
 
 |#
 
-;;; BEGIN condlet : conditional bind
-(defun condlet-binds (vars cl)
-  (mapcar #'(lambda (bindform)
-              (if (consp bindform)
-                (cons (cdr (assoc (car bindform) vars))
-                      (cdr bindform) )))
-          (cdr cl) ))
+(with-compilation-unit (:override nil)
+  (defmacro condlet (clauses &body body)
+    "Conditional bindings"
+    (let ((bodfn (gensym "CONDLET-"))
+          (vars (mapcar #'(lambda (v) (cons v (gensym "CONDLET-")))
+                        (remove-duplicates
+                          (mapcar #'car
+                                  (mappend #'cdr clauses) )))))
+      `(labels ((,bodfn ,(mapcar #'car vars)
+                        ,@body ))
+         (cond ,@(mapcar #'(lambda (cl)
+                             (condlet-clause vars cl bodfn) )
+                         clauses )))))
 
-(defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
-  `(,(car cl) (let ,(condlet-binds vars cl)
-                (,bodfn ,@(mapcar #'cdr vars)) )))
+  (defun condlet-binds (vars cl)
+    (mapcar #'(lambda (bindform)
+                (if (consp bindform)
+                    (cons (cdr (assoc (car bindform) vars))
+                          (cdr bindform) )))
+            (cdr cl) ))
 
-(defmacro condlet (clauses &body body)
-  (let ((bodfn (gensym "CONDLET-"))
-        (vars (mapcar #'(lambda (v) (cons v (gensym "CONDLET-")))
-                      (remove-duplicates
-                        (mapcar #'car
-                                (mappend #'cdr clauses) )))))
-    `(labels ((,bodfn ,(mapcar #'car vars)
-                      ,@body ))
-       (cond ,@(mapcar #'(lambda (cl)
-                           (condlet-clause vars cl bodfn) )
-                       clauses )))))
-;;; END condlet
+  (defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
+    `(,(car cl) (let ,(condlet-binds vars cl)
+                  (,bodfn ,@(mapcar #'cdr vars)) )))
+  )
 
 (defmacro if3 (test t-case nil-case ?-case)
+  "Like if except allows for an ambiguous result if the predicate returns ?"
   `(case ,test
      ((nil) ,nil-case)
      (?     ,?-case)
@@ -646,6 +834,7 @@ Examples |#
 |#
 
 (defmacro nif (expr pos zero neg)
+  "Numerical if with clauses for positive, zero, and negative"
   (let ((g (gensym "NIF-")))
     `(let ((,g ,expr))
        (cond ((plusp ,g) ,pos)
@@ -653,32 +842,38 @@ Examples |#
              (t ,neg) ))))
 
 (defmacro in (obj &rest choices)
+  "Member for the first argument in the rest of the arguments"
   (let ((insym (gensym "IN-")))
     `(let ((,insym ,obj))
        (or ,@(mapcar #'(lambda (c) `(eql ,insym ,c))
                      choices )))))
 
 (defmacro inq (obj &rest args)
+  "Like in, but quote the rest of the arguments"
   `(in ,obj ,@(mapcar #'(lambda (a) `',a) args)) )
 
 (defmacro in-if (fn &rest choices)
+  "Like in, but with a predicate function rather than the implicit member"
   (let ((fnsym (gensym "IN-IF-")))
     `(let ((,fnsym ,fn))
        (or ,@(mapcar #'(lambda (c)
                          `(funcall ,fnsym ,c) )
                      choices )))))
 
-(defun >casex (g cl)
-  (let ((key (car cl)) (rest (cdr cl)))
-    (cond ((consp key) `((in ,g ,@key) ,@rest))
-          ((inq key t otherwise) `(t ,@rest))
-          (t (error "bad > case clause")) )))
+(with-compilation-unit (:override nil)
+  (defmacro >case (expr &rest clauses)
+    "Like case except each key is evaluated"
+    (let ((g (gensym ">CASE-")))
+      `(let ((,g ,expr))
+         (cond ,@(mapcar #'(lambda (cl) (>casex g cl))
+                         clauses )))))
 
-(defmacro >case (expr &rest clauses)
-  (let ((g (gensym ">CASE-")))
-    `(let ((,g ,expr))
-       (cond ,@(mapcar #'(lambda (cl) (>casex g cl))
-                       clauses )))))
+  (defun >casex (g cl)
+    (let ((key (car cl)) (rest (cdr cl)))
+      (cond ((consp key) `((in ,g ,@key) ,@rest))
+            ((inq key t otherwise) `(t ,@rest))
+            (t (error "bad > case clause")) )))
+  )
 
 #| Examples
 
@@ -928,8 +1123,9 @@ Examples |#
        ,@(mapcar #'fourth meths) )))
 
 #| Examples
+
 (let ((x 1) (y 2) (z 3))
-  (sortf > z y x)
+  (sortf < z y x)
   (list x y z) )
 
 |#
@@ -1004,6 +1200,14 @@ Examples |#
                          ,(self (cdr args)) ))))
                args )))
 
+#| Examples
+
+(macroexpand-1
+  '(aif (member 1 '(2 3 1 4 5))
+        (reverse it) ))
+
+|#
+
 ;;; Anaphoric macros that check secondary return values for success
 
 (defmacro aif2 (test &optional then else)
@@ -1035,6 +1239,23 @@ Examples |#
                (acond2 ,@(cdr clauses)) )))))
 
 #| Examples
+
+;;; The meat of a memoized function
+(macroexpand
+  '(aif2 (gethash args hash)
+         it
+         (setf (gethash args hash)
+               (funcall fn args) )))
+
+(macroexpand
+  '(awhen2 (gethash key hash)
+     it ))
+
+(macroexpand
+  '(awhile2 (gethash key hash)
+     (do-some-stuff)
+     (maybe-set (gethash key hash)) ))
+
 (macroexpand
   '(acond2 ((test1) it)
            ((test2) (not it))
@@ -1044,7 +1265,50 @@ Examples |#
 
 (with-compilation-unit (:override nil)
 
+  (defmacro t-it (&body body)
+    "A macro that will change the success value of a predicate to an
+    arbitrary value of your choosing.  This is helpful for pedicates 
+    that return t and not something more useful, making them annoying 
+    to use, expecially with anaphoric macros."
+    (let ((it-sym (gensym "I-IT-")))
+      (multiple-value-bind (new-body ret-val)
+                            (extract-it-call body it-sym)
+        `(let ((,it-sym ,ret-val))
+           (if ,@new-body ,it-sym) ))))
+
+  (defun extract-it-call (tree it-val)
+    (cond ((atom tree) (values tree nil))
+          ((eql (car tree) :it) (values it-val (cadr tree)))
+          (t (multiple-value-bind (body1 val1) (extract-it-call (car tree) it-val)
+               (multiple-value-bind (body2 val2) (extract-it-call (cdr tree) it-val)
+                 (values (cons body1 body2) (or val1 val2)) ))))))
+
+#| Examples
+
+(extract-it-call '(> (+ 3 (it (+ 2 5))) 4) (gensym))
+
+(macroexpand-1 '(t-it (> (+ 3 (:it (+ 2 3))) 2)))
+
+(aif (t-it (> (+ 3 (:it (+ 2 3))) 2))
+     (- it 5)
+     nil )
+
+(t-it (:it (read)))
+
+(let ((seq1 '(1 2 3 4))
+      (seq2 '(1 2 3))
+      (seq3 '(5 4 3)) )
+  (aif (t-it (> (:it (length seq1)) (length seq2)))
+       (if (> it (length seq3))
+           (aif (t-it (not (= 0 (:it (car (last seq1))))))
+                it ))))
+
+|#
+
+(with-compilation-unit (:override nil)
+
   (defmacro a+ (&rest args)
+    "`it' bound to the previous term in the addition"
     (a+expand args nil) )
 
   (defun a+expand (args syms)
@@ -1059,6 +1323,7 @@ Examples |#
 (with-compilation-unit (:override nil)
 
   (defmacro alist (&rest args)
+    "`it' bound to the previous term in the list"
     (alist-expand args nil) )
 
   (defun alist-expand (args syms)
@@ -1073,6 +1338,7 @@ Examples |#
 (with-compilation-unit (:override nil)
 
   (defmacro defanaph (name &key calls (rule :all))
+    "A macro for automating anahporic macro definitions."
     (let* ((opname (or calls (pop-symbol name)))
            (body (case rule
                    (:all `(anaphex1 args '(,opname)))
@@ -1098,6 +1364,17 @@ Examples |#
 
   (defun pop-symbol (sym)
     (intern (subseq (symbol-name sym) 1)) ) )
+
+#| Examples
+
+;;; These are not the most useful, perhaps they are better as examples
+(a+ 1 2 (/ 1 it) 4 (* 0.1 it))
+(alist 1 (+ it 1) (+ it 1))
+
+(pop-symbol 'aif)
+(pop-symbol 'acond)
+
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;;;; Read macros ;;;;

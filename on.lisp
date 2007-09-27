@@ -1146,11 +1146,17 @@
 (set-dispatch-macro-character #\# #\!
   #'(lambda (stream char1 char2)
       (declare (ignore char1 char2))
-      `(progn ,(read stream t nil t) 'output-suppressed) ))
+      `(progn ,(read stream t nil t) (values)) ))
 
 #| Examples
 
-#!(make-list 1000000)
+#!(setf *list* (make-list 1000000))
+
+*list* ; console flooded with output
+
+(unintern '*list*)
+
+(cl-user:gc :full t)
 
 |#
 

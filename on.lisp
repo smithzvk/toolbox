@@ -601,6 +601,14 @@
             args ))
   )
 
+(defun curry (fn &rest args)
+  #'(lambda (&rest args2)
+      (apply fn (append args args2)) ))
+
+(defun rcurry (fn &rest args)
+  #'(lambda (&rest args2)
+      (apply fn (append args2 args)) ))
+
 #| Examples
 
 ;;; You can use it to automate function definition, but then again

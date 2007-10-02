@@ -13,13 +13,13 @@
                `(dotimes (,i ,n-elts)
                   (declare ,`(type ,var-type ,@vars))
                   ,@(insert-arefs body vecs i elt-type) ))))
-
+ 
   (defun quotep (form)
     (and (listp form) (eql 'quote (car form))) )
-
+ 
   (defun needs-eval? (form)
     (not (or (atom form) (quotep form))) )
-
+ 
   (defun insert-arefs (tree vectors i elt-type)
     (if (null tree)
         nil
@@ -31,8 +31,7 @@
                    (curr (list (insert-arefs (car tree) vectors i elt-type))) )
                   (t ; Otherwise, this is a simple case, just leave it unchanged
                     (curr (list (car tree)))) )
-                 (append curr (insert-arefs (cdr tree) vectors i elt-type)) )))
-  )
+                 (append curr (insert-arefs (cdr tree) vectors i elt-type)) ))) )
 
 #| Examples
 

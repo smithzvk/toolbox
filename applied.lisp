@@ -8,13 +8,14 @@
 ;;;; Lazy evaluation ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant unforced (gensym "UNFORCED-"))
+(eval-when (:compile-toplevel)
+(defconstant +unforced+ (gensym "UNFORCED-")) )
 
 (defstruct delay forced closure)
 
 (defmacro delay (expr)
   (let ((self (gensym "DELAY-")))
-    `(let ((,self (make-delay :forced unforced)))
+    `(let ((,self (make-delay :forced +unforced+)))
        (setf (delay-closure ,self)
              #'(lambda ()
                  (setf (delay-forced ,self) ,expr) ))
@@ -22,12 +23,12 @@
 
 (defun force (x)
   (if (delay-p x)
-      (if (eq (delay-forced x) unforced)
+      (if (eq (delay-forced x) +unforced+)
           (funcall (delay-closure x))
           (delay-forced x) )
       x ))
 
-#| Examples
+#|| Examples
 
 (delay (+ 1 1))
 
@@ -50,13 +51,15 @@
 (if-func t   (delay (print 'then)) (delay (print 'else)))
 (if-func nil (delay (print 'then)) (delay (print 'else)))
 
-|#
+||#
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Continuations ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 (setq *cont* #'identity)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defmacro =lambda (parms &body body)
   `#'(lambda (*cont* ,@parms) ,@body) )
@@ -78,9 +81,9 @@
   `(funcall ,fn *cont* ,@args) )
 
 (defmacro =apply (fn &rest args)
-  `(apply ,fn *cont* ,@args) )
+  `(apply ,fn *cont* ,@args) ) )
 
-#| Examples
+#|| Examples
 
 (macroexpand-1
   '(=defun add1 (x) (=values (1+ x))) )
@@ -117,7 +120,7 @@
   (dft2 t1)
   (dft2 t2) )
 
-|#
+||#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Multiprocessing ;;;;
@@ -191,7 +194,7 @@
       (setq *procs* (apply #'delete obj *procs* args))
       (pick-process) ))
 
-#| Examples
+#|| Examples
 
 (defvar *open-doors* nil)
 
@@ -257,7 +260,7 @@
 
 (barbarians)
 
-|#
+||#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Nondeterminism ;;;;
@@ -265,6 +268,8 @@
 
 (defparameter *paths* nil)
 (defconstant failsym '@)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
 
 (defmacro choose (&rest choices)
   (if choices
@@ -276,7 +281,7 @@
       '(fail) ))
 
 (defmacro choose-bind (var choices &body body)
-  `(cb #'(lambda (,var) ,@body) ,choices) )
+  `(cb #'(lambda (,var) ,@body) ,choices) ) )
 
 (defun cb (fn choices)
   (if choices
@@ -292,7 +297,7 @@
       (funcall (pop *paths*))
       failsym ))
 
-#| Examples
+#|| Examples
 
 (defun do2 (x)
   (choose (+ x 2) (* x 2) (expt x 2)) )
@@ -321,7 +326,7 @@
 
 (parlor-trick 5)
 
-|#
+||#
 
 ;;;;;;;;;;;;;
 ;;;; ATN ;;;;
@@ -380,7 +385,7 @@
              (progn ,@body (fail))
              (fail) )))))
 
-#| Examples
+#|| Examples
 
 (compile-cmds '((setr a b) (setr c d)))
 
@@ -495,7 +500,7 @@
 
 1
 
-|#
+||#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Query Compiler ;;;;
@@ -519,7 +524,7 @@
   `(progn (db-push ',pred ',args)
           ',args ))
 
-#| An interpreter implementation
+#|| An interpreter implementation
 
 (defmacro do-answers (query &body body)
   (let ((binds (gensym "DO-ANSWERS-")))
@@ -558,7 +563,7 @@
               (aif2 (match x args binds) (list it)) )
           (db-query pred) ))
 
-|#
+||#
 
 ;;; Compiled implementation
 
@@ -604,7 +609,7 @@
              t )
            ,body ))) )
 
-#| Examples
+#|| Examples
 
 (clear-db)
 (fact painter hogarth william english)
@@ -626,5 +631,5 @@
                   (lisp (< 1770 ?d 1800)) )
   (princ (list ?x ?d)) )
 
-|#
+||#
 

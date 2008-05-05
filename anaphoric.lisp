@@ -2,46 +2,42 @@
 ;;;; My ``On Lisp'' based tool box ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Utility functions ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;
+;;;; Utility functions
 
 (in-package :toolbox)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Anaphoric macros ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;
+;;;; Anaphoric macros
 
 (defmacro awhile (expr &body body)
   `(do ((it ,expr ,expr))
      ((not it))
      ,@body ))
 
-#|
-(defmacro aif (test-form then-form &optional else-form)
-  `(let ((it ,test-form))
-     (if it ,then-form ,else-form) ))
+;; (defmacro aif (test-form then-form &optional else-form)
+;;   `(let ((it ,test-form))
+;;      (if it ,then-form ,else-form) ))
 
-(defmacro awhen (test-form &body body)
-  `(aif ,test-form
-        (progn ,@body) ))
+;; (defmacro awhen (test-form &body body)
+;;   `(aif ,test-form
+;;         (progn ,@body) ))
 
-(defmacro aand (&rest args)
-  (cond ((null args) t)
-        ((null (cdr args)) (car args))
-        (t `(aif ,(car args) (aand ,@(cdr args)))) ))
+;; (defmacro aand (&rest args)
+;;   (cond ((null args) t)
+;;         ((null (cdr args)) (car args))
+;;         (t `(aif ,(car args) (aand ,@(cdr args)))) ))
 
 
-(defmacro acond (&rest clauses)
-  (if (null clauses)
-    nil
-    (let ((cl1 (car clauses))
-          (sym (gensym "ACOND-")) )
-      `(let ((,sym ,(car cl1)) )
-         (if ,sym
-           (let ((it ,sym)) ,@(cdr cl1))
-           (acond ,@(cdr clauses)) )))))
-|#
+;; (defmacro acond (&rest clauses)
+;;   (if (null clauses)
+;;     nil
+;;     (let ((cl1 (car clauses))
+;;           (sym (gensym "ACOND-")) )
+;;       `(let ((,sym ,(car cl1)) )
+;;          (if ,sym
+;;            (let ((it ,sym)) ,@(cdr cl1))
+;;            (acond ,@(cdr clauses)) )))))
 
 (defmacro alambda (parms &body body)
   `(labels ((self ,parms ,@body))
@@ -57,29 +53,27 @@
                          ,(self (cdr args)) ))))
                args )))
 
-#| Examples
+;; ;; Examples
 
-(macroexpand-1
-  '(aif (member 1 '(2 3 1 4 5))
-        (reverse it) ))
+;; (macroexpand-1
+;;   '(aif (member 1 '(2 3 1 4 5))
+;;         (reverse it) ))
 
-(aand (member 3 '(1 2 3 4 5)) (reverse it))
+;; (aand (member 3 '(1 2 3 4 5)) (reverse it))
 
-(let ((var 99))
-  (acond ((member var '(4 3 1 2 3)) (reverse it))
-         ((find-if #'evenp '(3 5 7 2)) (print (- it 5)))
-         (t 'otherwise) ))
+;; (let ((var 99))
+;;   (acond ((member var '(4 3 1 2 3)) (reverse it))
+;;          ((find-if #'evenp '(3 5 7 2)) (print (- it 5)))
+;;          (t 'otherwise) ))
 
-;;; Extremely usefull, it allows you to create `nameless' recursive functions
-(macroexpand-1 '(alambda (lst)
-                  (cond ((null lst) nil)
-                        (t (self (cdr lst))) )))
-(funcall (alambda (lst)
-           (cond ((null lst) nil)
-                 (t (cons lst (self (cdr lst)))) ))
-         '(1 2 3 4 5) )
-
-|#
+;; ;;; Extremely usefull, it allows you to create `nameless' recursive functions
+;; (macroexpand-1 '(alambda (lst)
+;;                   (cond ((null lst) nil)
+;;                         (t (self (cdr lst))) )))
+;; (funcall (alambda (lst)
+;;            (cond ((null lst) nil)
+;;                  (t (cons lst (self (cdr lst)))) ))
+;;          '(1 2 3 4 5) )
 
 ;;; Anaphoric macros that check secondary return values for success
 
@@ -111,30 +105,28 @@
                (let ((it ,val)) ,@(cdr cl1))
                (acond2 ,@(cdr clauses)) )))))
 
-#| Examples
+;; ;; Examples
 
-;;; The meat of a memoized function
-(macroexpand
-  '(aif2 (gethash args hash)
-         it
-         (setf (gethash args hash)
-               (funcall fn args) )))
+;; ;;; The meat of a memoized function
+;; (macroexpand
+;;   '(aif2 (gethash args hash)
+;;          it
+;;          (setf (gethash args hash)
+;;                (funcall fn args) )))
 
-(macroexpand
-  '(awhen2 (gethash key hash)
-     it ))
+;; (macroexpand
+;;   '(awhen2 (gethash key hash)
+;;      it ))
 
-(macroexpand
-  '(awhile2 (gethash key hash)
-     (do-some-stuff)
-     (maybe-set (gethash key hash)) ))
+;; (macroexpand
+;;   '(awhile2 (gethash key hash)
+;;      (do-some-stuff)
+;;      (maybe-set (gethash key hash)) ))
 
-(macroexpand
-  '(acond2 ((test1) it)
-           ((test2) (not it))
-           (t       'goodbye) ))
-
-|#
+;; (macroexpand
+;;   '(acond2 ((test1) it)
+;;            ((test2) (not it))
+;;            (t       'goodbye) ))
 
 (with-compilation-unit (:override nil)
 
@@ -156,27 +148,25 @@
                (multiple-value-bind (body2 val2) (extract-ret-call (cdr tree) ret-val)
                  (values (cons body1 body2) (or val1 val2)) ))))) )
 
-#| Examples
+;; ;; Examples
 
-(extract-ret-call '(> (+ 3 (:ret (+ 2 5))) 4) (gensym))
+;; (extract-ret-call '(> (+ 3 (:ret (+ 2 5))) 4) (gensym))
 
-(macroexpand-1 '(t-ret (> (+ 3 (:ret (+ 2 3))) 2)))
+;; (macroexpand-1 '(t-ret (> (+ 3 (:ret (+ 2 3))) 2)))
 
-(aif (t-ret (> (+ 3 (:ret (+ 2 3))) 2))
-     (- it 5)
-     nil )
+;; (aif (t-ret (> (+ 3 (:ret (+ 2 3))) 2))
+;;      (- it 5)
+;;      nil )
 
-(t-ret (:ret (read)))
+;; (t-ret (:ret (read)))
 
-(let ((seq1 '(1 2 3 4))
-      (seq2 '(1 2 3))
-      (seq3 '(5 4 3)) )
-  (aif (t-ret (> (:ret (length seq1)) (length seq2)))
-       (if (> it (length seq3))
-           (aif (t-ret (not (= 0 (:ret (car (last seq1))))))
-                it ))))
-
-|#
+;; (let ((seq1 '(1 2 3 4))
+;;       (seq2 '(1 2 3))
+;;       (seq3 '(5 4 3)) )
+;;   (aif (t-ret (> (:ret (length seq1)) (length seq2)))
+;;        (if (> it (length seq3))
+;;            (aif (t-ret (not (= 0 (:ret (car (last seq1))))))
+;;                 it ))))
 
 (with-compilation-unit (:override nil)
 
@@ -238,14 +228,11 @@
   (defun pop-symbol (sym)
     (intern (subseq (symbol-name sym) 1)) ) )
 
-#| Examples
+;; ;; Examples
 
-;;; These are not the most useful, perhaps they are better as examples
-(a+ 1 2 (/ 1 it) 4 (* 0.1 it))
-(alist 1 (+ it 1) (+ it 1))
+;; ;;; These are not the most useful, perhaps they are better as examples
+;; (a+ 1 2 (/ 1 it) 4 (* 0.1 it))
+;; (alist 1 (+ it 1) (+ it 1))
 
-(pop-symbol 'aif)
-(pop-symbol 'acond)
-
-|#
-
+;; (pop-symbol 'aif)
+;; (pop-symbol 'acond)

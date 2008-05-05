@@ -4,15 +4,15 @@
 
 (in-package :toolbox)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Utility functions ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;
+;;;; Utility functions
 
 ;;; List utilities
 (proclaim '(inline last1 single append1 conc1 mklist))
 
-(defun last1 (lst)
-  (car (last lst)) )
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun last1 (lst)
+    (car (last lst)) ))
 
 (defun single (lst)
   (and (consp lst) (not (cdr lst))) )
@@ -26,19 +26,17 @@
 (defun mklist (obj)
   (if (listp obj) obj (list obj)) )
 
-#| Examples
-(last '(1 2 3 4))
-(last1 '(1 2 3 4))
+;; Examples
+;; (last '(1 2 3 4))
+;; (last1 '(1 2 3 4))
 
-(single '(1))
-(single '(1 2))
+;; (single '(1))
+;; (single '(1 2))
 
-(append1 '(1 2 3 4) 5)
+;; (append1 '(1 2 3 4) 5)
 
-(mklist '(5))
-(mklist 5)
-
-|#
+;; (mklist '(5))
+;; (mklist 5)
 
 (defun longer (x y)
   (labels ((compare (x y)
@@ -65,12 +63,17 @@
                       (nreverse (cons source acc)) ))))
     (if source (rec source nil) nil) ))
 
-(defun flatten (x)
-  (labels ((rec (x acc)
-             (cond ((null x) acc)
-                   ((atom x) (cons x acc))
-                   (t (rec (car x) (rec (cdr x) acc))) )))
-    (rec x nil) ))
+(defun group-by (list &rest counts)
+  (let ((ret list))
+    (dolist (cnt counts ret)
+      (setf ret (group ret cnt)) )))
+
+;; (defun flatten (x)
+;;   (labels ((rec (x acc)
+;;              (cond ((null x) acc)
+;;                    ((atom x) (cons x acc))
+;;                    (t (rec (car x) (rec (cdr x) acc))) )))
+;;     (rec x nil) ))
 
 (defun prune (test tree)
   (labels ((rec (tree acc)
@@ -93,6 +96,7 @@
             (find2 fn (cdr lst)) ))))
 
 (defun before (x y lst &key (test #'eql))
+  "Is the first occurence of X before Y in LST using TEST"
   (and lst
        (let ((first (car lst)))
          (cond ((funcall test y first) nil)
@@ -100,30 +104,35 @@
                (t (before x y (cdr lst) :test test)) ))))
 
 (defun after (x y lst &key (test #'eql))
+  "Is the first occurence of X after Y in LST using TEST"
   (let ((rest (before y x lst :test test)))
     (and rest (member x rest :test test)) ))
 
-#| Examples
+;; ;; Examples
 
-;;; Similar to find-if, member-if but returns the evaluation as the 
-;;; second argument
-(find2 #'evenp '(1 2 3 4 5))
-(find2 (cut (member 5 <>)) '((1 2 3) (2 7 6 3) (3 5 3) (4) (5 9 2)))
-(find-if #'evenp '(1 2 3 4 5))
-(member-if #'evenp '(1 2 3 4 5))
+;; ;;; Similar to find-if, member-if but returns the evaluation as the 
+;; ;;; second argument
+;; (find2 #'evenp '(1 2 3 4 5))
+;; (find2 (cut (member 5 <>)) '((1 2 3) (2 7 6 3) (3 5 3) (4) (5 9 2)))
+;; (find-if #'evenp '(1 2 3 4 5))
+;; (member-if #'evenp '(1 2 3 4 5))
 
-;;; Is the first occurence of arg1 before/after the first occurence of arg2?
-(before 'a 'b '(1 2 3 b 5 a))
-(before 'a 'b '(1 a 2 3 b 5 a))
+;; ;;; Is the first occurence of arg1 before/after the first occurence of arg2?
+;; (before 'a 'b '(1 2 3 b 5 a))
+;; (before 'a 'b '(1 a 2 3 b 5 a))
 
-(after 'a 'b '(1 2 3 b 5 a))
-(after 'a 'b '(1 a 2 3 b 5 a))
+;; (after 'a 'b '(1 2 3 b 5 a))
+;; (after 'a 'b '(1 a 2 3 b 5 a))
 
-|#
+(defun duplicate (obj lst &key (test #'eql) (key #'identity))
+  (member obj (cdr (member obj lst :test test :key key))
+          :test test :key key ))
 
-(defun duplicate (obj lst &key (test #'eql))
-  (member obj (cdr (member obj lst :test test))
-          :test test ))
+(defun n-duplicate (n obj lst &key (test #'eql) (key #'identity))
+  (if (= n 1)
+      (member obj lst :test test :key key)
+      (member obj (cdr (n-duplicate (1- n) obj lst :test test :key key))
+              :test test :key key )))
 
 (defun split-on (fn lst)
   (unless (null lst)
@@ -139,18 +148,20 @@
        (values (nreverse acc) src) )
       (push (car src) acc) )))
 
-#| Examples
+;; ;; Examples
 
-(duplicate 1 '(1 2 1 3))
-(duplicate 2 '(1 2 1 3))
+;; (duplicate 1 '(1 2 1 3))
+;; (duplicate 2 '(1 2 1 3))
 
-(split-on #'oddp '(1 2 3 4))
+;; (duplicate 1 '((H . 1) (E . 2) (J . 1) (1 . 3)) :key #'cdr)
 
-(split-if #'oddp '(2 2 3 4))
+;; (n-duplicate 3 1 '((H . 1) (E . 2) (J . 1) (1 . 3) (5 . 1)) :key #'cdr)
 
-(split-if (cut (> <> 4)) '(1 2 3 4 5 6 7 8))
+;; (split-on #'oddp '(1 2 3 4))
 
-|#
+;; (split-if #'oddp '(2 2 3 4))
+
+;; (split-if (cut (> <> 4)) '(1 2 3 4 5 6 7 8))
 
 (defun most (fn lst)
   (if (null lst)
@@ -187,15 +198,47 @@
                  (push obj result) ))))
       (values (nreverse result) max) )))
 
-#| Examples
+;; ;; Examples
 
-(most #'length '((a b) (c d e) (f) (g h i)))
+;; (most #'length '((a b) (c d e) (f) (g h i)))
 
-(best #'> '(1 2 3 4 5 3 2))
+;; (best #'> '(1 2 3 4 5 3 2))
 
-(mostn #'length '((a b) (a b c) (a) (e f g)))
+;; (mostn #'length '((a b) (a b c) (a) (e f g)))
 
-|#
+;;; Function versions of some macros
+
+(defun all (&rest x)
+  "Like the macro `and' except a function, so no flow control, etc."
+  (every #'identity x) )
+
+(defun any (&rest x)
+  "Like the macro `or' except a function, so no flow control, etc."
+  (some #'identity x) )
+
+;; ;; Examples
+
+;; (all 1 2 3 4)
+;; (all 1 nil t 'false)
+;; (any nil nil t nil)
+;; (any nil nil)
+
+;;; Some > < operations with more useful return values
+(defun _> (a b)
+  (declare (inline _>))
+  (if (> a b) a nil) )
+
+(defun >_ (a b)
+  (declare (inline >_))
+  (if (> a b) b nil) )
+
+(defun _< (a b)
+  (declare (inline _<))
+  (if (< a b) a nil) )
+
+(defun <_ (a b)
+  (declare (inline <_))
+  (if (< a b) b nil) )
 
 ;;; Mapping utilities
 
@@ -221,8 +264,8 @@
 (defun map0-n (fn n)
   (mapa-b fn 0 n) )
 
-(defun mappend (fn &rest lsts)
-  (apply #'append (apply #'mapcar fn lsts)) )
+;; (defun mappend (fn &rest lsts)
+;;   (apply #'append (apply #'mapcar fn lsts)) )
 
 (defun mapcars (fn &rest lsts)
   (let ((result nil))
@@ -239,37 +282,35 @@
                (apply #'rmapcar fn args) )
            args )))
 
-#| Examples
+;; ;; Examples
 
-(map0-n #'1+ 5)
+;; (map0-n #'1+ 5)
 
-; Can only map unary functions over the range)
-(mapa-b #'identity 1 8)
+;; ; Can only map unary functions over the range)
+;; (mapa-b #'identity 1 8)
 
-(mapa-b #'+ 1 4 0.2d0)
+;; (mapa-b #'+ 1 4 0.2d0)
 
-(map-> #'/              ; function to map on (once again unary only)
-       1                ; start value
-       #.(cut (> <> 3)) ; exit clause
-       #'1+ )           ; next element
+;; (map-> #'/              ; function to map on (once again unary only)
+;;        1                ; start value
+;;        #.(cut (> <> 3)) ; exit clause
+;;        #'1+ )           ; next element
 
-; Not really sure what this is good for
-(mappend #'identity '((1 3 4) (2 10 11) (3 2 1) (4 5 6)))
+;; ; Not really sure what this is good for
+;; (mappend #'identity '((1 3 4) (2 10 11) (3 2 1) (4 5 6)))
 
-; Cool stuff you can do with cut
-(mapcar (cut (apply #'+ <>)) '((1 2 3) (4 5 6)))
-(mapcar (cut (reduce #'+ <>)) '((1 2 3) (4 5 6)))
+;; ; Cool stuff you can do with cut
+;; (mapcar (cut (apply #'+ <>)) '((1 2 3) (4 5 6)))
+;; (mapcar (cut (reduce #'+ <>)) '((1 2 3) (4 5 6)))
 
-;Series code, doesn't seem to work?
-;(collect (#Mfn (scan-range :from a :upto b :by c)))
+;; ;Series code, doesn't seem to work?
+;; ;(collect (#Mfn (scan-range :from a :upto b :by c)))
 
-; Mapping over several lists without consing
-(mapcars #'sqrt '(1 2 3 4) '(4 5 6 7)) ; == (mapcar #'sqrt (append '(1 2 3 4) '(4 5 6 7)))
+;; ; Mapping over several lists without consing
+;; (mapcars #'sqrt '(1 2 3 4) '(4 5 6 7)) ; == (mapcar #'sqrt (append '(1 2 3 4) '(4 5 6 7)))
 
-; Recursive mapcar
-(rmapcar #'+ '(1 (2 (3) 4)) '(10 (20 (30) 40)))
-
-|#
+;; ; Recursive mapcar
+;; (rmapcar #'+ '(1 (2 (3) 4)) '(10 (20 (30) 40)))
 
 ;;; break loop stuff
 
@@ -312,80 +353,81 @@
                  (intern (make-string 1 :initial-element c)) )
        (symbol-name sym) ))
 
-#| Examples
+;; ;; Examples
 
-(mkstr 'hello)
-(mkstr 1984)
-(mkstr '(1 2 3 4))
-(mkstr (make-hash-table))
-(string 'howdy)
-;(string 1984)       ;error
-;(string '(1 2 3 4)) ;error
-(symbol-name 'heck)
+;; (mkstr 'hello)
+;; (mkstr 1984)
+;; (mkstr '(1 2 3 4))
+;; (mkstr (make-hash-table))
+;; (string 'howdy)
+;; ;(string 1984)       ;error
+;; ;(string '(1 2 3 4)) ;error
+;; (symbol-name 'heck)
 
-;;; Largely useless...
-(symb 'hello)
-(type-of (symb 'hello))
+;; ;;; Largely useless...
+;; (symb 'hello)
+;; (type-of (symb 'hello))
 
-(reread '(1 2 3 4))
+;; (reread '(1 2 3 4))
 
-(explode 'hello)
+;; (explode 'hello)
 
-|#
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Function returning functions
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Function returning functions ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun memoize (fn &key (size nil size-p) (test #'equalp))
+(defun memoize (fn &key (size nil size-p) (test #'equalp)
+                        (arg-fn #'identity) )
   "Function memoizer"
   (let ((cache (if size-p
                    (make-hash-table :size size :test test)
                    (make-hash-table :test test)) ))
-    #'(lambda (&rest args)
-        (multiple-value-bind (val win) (gethash args cache)
-          (if win
-              val
-              (setf (gethash args cache)
-                    (apply fn args) ))))))
+    (defun clear-memos () (setf cache (make-hash-table :test test)))
+    (defun get-hash () cache)
+    (lambda (&rest args)
+      (multiple-value-bind (val win) (gethash (funcall arg-fn args) cache)
+        (if win
+            (apply #'values val)
+            (apply #'values
+                   (setf (gethash (funcall arg-fn args) cache)
+                         (multiple-value-list (apply fn args)) )))))))
 
-#| Examples
+;; ;; Examples
 
-;;;See string-algs.lisp for dynamic programming examples
+;; ;;; See string-algs.lisp for dynamic programming examples
 
-(defun slow-func (x)
-  (sleep 2)
-  x )
+;; (declaim (optimize (speed 3) (debug 0)))
 
-(setf (symbol-function 'slow-func) (memoize #'slow-func))
+;; (defun slow-func (x)
+;;   (declare (notinline slow-func))
+;;   (cond ((= 0 x) 0)
+;;         (t (or (sleep x) (slow-func (1- x)))) ))
 
-(slow-func 1)
-(slow-func 2)
+;; (setf (symbol-function 'slow-func) (memoize #'slow-func))
 
-(slow-func 1) ; The sleep is not executed, it just remembers the answer and returns it
-(slow-func 2)
+;; (slow-func 1)
+;; (slow-func 2)
 
-|#
+;; (slow-func 1) ; The sleep is not executed, it just remembers the answer and returns it
+;; (slow-func 2)
 
-(defun compose (&rest fns)
-  "Function compose"
-  (if fns
-    (let ((fn1 (last1 fns))
-          (fns (butlast fns)) )
-      #'(lambda (&rest args)
-          (reduce #'funcall fns
-                  :from-end t
-                  :initial-value (apply fn1 args) )))
-    #'identity ))
+;; (defun compose (&rest fns)
+;;   "Function compose"
+;;   (if fns
+;;     (let ((fn1 (last1 fns))
+;;           (fns (butlast fns)) )
+;;       #'(lambda (&rest args)
+;;           (reduce #'funcall fns
+;;                   :from-end t
+;;                   :initial-value (apply fn1 args) )))
+;;     #'identity ))
 
 (defun fif (if then &optional else)
   "Functional if"
   #'(lambda (x)
       (if (funcall if x)
-        (funcall then x)
-        (if else (funcall else x)) )))
+          (funcall then x)
+          (if else (funcall else x)) )))
 
-;;; Function intersection
 (defun fint (fn &rest fns)
   "Function INTersection"
   (if (null fns)
@@ -394,7 +436,6 @@
       #'(lambda (x)
           (and (funcall fn x) (funcall chain x)) ))))
 
-;;; Function union
 (defun fun (fn &rest fns)
   "Function UNion"
   (if (null fns)
@@ -403,61 +444,67 @@
         #'(lambda (x)
             (or (funcall fn x) (funcall chain x)) ))))
 
-#| Examples
+;; ;; Examples
 
-(mapcar (compose (cut (list 'begin <> 'end)) #'1+) '(1 2 3 4 5))
+;; (mapcar (compose (cut (list 'begin <> 'end)) #'1+) '(1 2 3 4 5))
 
-(mapcar (compose #'sqrt ; takes 1 argument
-                 #'/ )  ; takes 2 arguments
-        '(1 2 3 4 5) '(5 4 3 2 1) )
+;; (mapcar (compose #'sqrt ; takes 1 argument
+;;                  #'/ )  ; takes 2 arguments
+;;         '(1 2 3 4 5) '(5 4 3 2 1) )
 
-; Move up to the next even integer
-(funcall (fif #'oddp #'1+ #'identity) 4)
+;; ; Move up to the next even integer
+;; (funcall (fif #'oddp #'1+ #'identity) 4)
 
-; Integers which are odd and even (i.e. non of them)
-(mapcar (fint #'oddp #'evenp) '(1 2 3 4))
+;; ; Integers which are odd and even (i.e. non of them)
+;; (mapcar (fint #'oddp #'evenp) '(1 2 3 4))
 
-; Integers which are odd or even (i.e. all of them)
-(mapcar (fun #'oddp #'evenp) '(1 2 3 4))
+;; ; Integers which are odd or even (i.e. all of them)
+;; (mapcar (fun #'oddp #'evenp) '(1 2 3 4))
 
-|#
-
-(defun lrec (rec &optional base)
-  "List RECursion function generator"
+(defun lrec (rec &optional (base #'identity))
+  "List RECursion function generator:
+  Returns a function that accepts a list and if NIL it returns/calls base
+  and if a list, calls REC with the first element of the list and a function
+  that recurses the funtion on the CDR."
+  (declare (type (function (t function) t) rec))
   (labels ((self (lst)
              (if (null lst)
-               (if (functionp base)
-                 (funcall base)
-                 base )
-               (funcall rec (car lst)
-                        #'(lambda ()
-                            (self (cdr lst)) )))))
+                 (if (functionp base)
+                     (funcall base)
+                     base )
+                 (funcall rec (car lst)
+                          #'(lambda ()
+                              (self (cdr lst)) )))))
     #'self ))
 
-#| Examples
+;; ;; Examples
 
-;length
-(lrec #'(lambda (x f) (1+ (funcall f))) 0)
+;; ;length
+;; (lrec #'(lambda (x f) (1+ (funcall f))) 0)
 
-;every (for oddp)
-(lrec #'(lambda (x f) (and (oddp x) (funcall f))) t)
+;; ;every (for oddp)
+;; (lrec #'(lambda (x f) (and (oddp x) (funcall f))) t)
 
-;copy-list
-(lrec #'(lambda (x f) (cons x (funcall f))))
+;; ;copy-list
+;; (lrec #'(lambda (x f) (cons x (funcall f))))
 
-;remove-duplicates
-(lrec #'(lambda (x f) (adjoin x (funcall f))))
+;; ;remove-duplicates
+;; (lrec #'(lambda (x f) (adjoin x (funcall f))))
 
-;find-if, for some function fn
-(lrec #'(lambda (x f) (if (fn x) x (funcall f))))
+;; ;find-if, for some function fn
+;; (lrec #'(lambda (x f) (if (fn x) x (funcall f))))
 
-;some, for some function fn
-(lrec #'(lambda (x f) (or (fn x) (funcall f))))
-
-|#
+;; ;some, for some function fn
+;; (lrec #'(lambda (x f) (or (fn x) (funcall f))))
 
 (defun ttrav (rec &optional (base #'identity))
-  "Tree TRAVerser function generator"
+  "  Tree TRAVerser function generator:
+  Returns a function that recurses a tree, when a leaf is encountered it
+  applies/returns BASE and at each internal node REC is called with the first
+  arg returned from recursing on the CAR and the second recursing on the CDR
+  (or NIL if (CDR tree) = NIL).  The function returned always travels the
+  entire tree"
+  (declare (type (function (t t) t) rec))
   (labels ((self (tree)
              (if (atom tree)
                  (if (functionp base)
@@ -465,57 +512,66 @@
                      base )
                  (funcall rec (self (car tree))
                           (if (cdr tree)
-                              (self (cdr tree)) )))))
+                              (self (cdr tree))
+                              nil )))))
     #'self ))
 
 (defun trec (rec &optional (base #'identity))
-  "Tree RECursion function generator"
+  "Tree RECursion function generator:
+  Returns a function that accepts a tree and will, if an atom, return/call 
+  BASE, and if not, call REC with arguments the tree and two functions
+  which when called recurse down the CAR and CDR of the tree, respectively."
+  (declare (type (function (list function function) t) rec))
   (labels 
     ((self (tree)
        (if (atom tree)
-         (if (functionp base)
-           (funcall base tree)
-           base )
-         (funcall rec tree
-                  #'(lambda ()
-                      (self (car tree)) )
-                  #'(lambda ()
-                      (if (cdr tree)
-                        (self (cdr tree)) ))))))
+           (if (functionp base)
+               (funcall base tree)
+               base )
+           (funcall rec tree
+                    #'(lambda ()
+                        (self (car tree)) )
+                    #'(lambda ()
+                        (if (cdr tree)
+                            (self (cdr tree)) 
+                            nil ))))))
     #'self ))
 
-#| Examples
+;; ;; Examples
 
-;copy-tree
-(ttrav #'cons)
+;; ;; copy-tree
+;; (ttrav #'cons)
 
-;count-leaves
-(ttrav #'(lambda (l r) (+ l (or r 1))) 1)
+;; ;; count-leaves
+;; (let ((count-leaves (ttrav #'(lambda (l r) (+ l (or r 0))) 1)))
+;;   (funcall count-leaves '(1 2 (3 4) ((4 5 (6) 7) (8 9)) 10)) )
 
-;flatten
-(ttrav #'nconc #'mklist)
+;; ;; flatten
+;; (let ((flatten (ttrav #'nconc #'mklist)))
+;;   (funcall flatten '(1 2 3 (4 5))) )
 
-(funcall * '(1 2 3 (4 5)))
+;; ;; CONS will copy the tree, 1+ will add one to each element
+;; (funcall (ttrav #'cons #'1+) '(1 2 3 (4 5)))
 
-(funcall (ttrav #'cons #'1+) '(1 2 3 (4 5)))
+;; ;rfind-if for oddp
+;; (let ((rfind-if-oddp (trec #'(lambda (o l r)
+;;                                (declare (ignore o))
+;;                                (or (funcall l) (funcall r)) )
+;;                            #'(lambda (tree) (and (oddp tree) tree)) )))
+;;   (funcall rfind-if-oddp '(2 4 (2 2 4 4 ((6) 8 (10) ((1)))) 3 5 7)) )
 
-;flatten
-(trec #'(lambda (o l r) (or (funcall l) (funcall r)))
-      #'(lambda (tree) (and (oddp tree) tree)) )
-
-;rfind-if for oddp
-(trec #'(lambda (o l r) (or (funcall l) (funcall r)))
-      #'(lambda (tree) (and (oddp tree) tree)) )
-
-|#
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Macros returning functions ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Macros returning functions
 
 (with-compilation-unit (:override nil)
   (defmacro fn (expr)
-    ""
+    "Build a function like so:
+
+     (fn (op func1 func2 ...)) => (lambda (x) (op (func1 x) (func2 x) ...))
+
+   Compose is a special case:
+     (fn (compose func1 func2 ... funcN))
+        => (lambda (x) (func1 (func2 (... (funcN x)))))"
     `#',(rbuild expr) )
 
   (defun rbuild (expr)
@@ -540,10 +596,10 @@
                          `(,(rbuild (car fns))
                             ,(rec (cdr fns)) )
                          g )))
-            (rec fns) ))))
-  )
+            (rec fns) )))) )
 
 (defmacro alrec (rec &optional base)
+  "Anaphoric List RECursor generator.  Return a function..."
   (let ((gfn (gensym "ALREC-")))
     `(lrec #'(lambda (it ,gfn)
                (symbol-macrolet ((rec (funcall ,gfn)))
@@ -551,6 +607,7 @@
            ,base )))
 
 (defmacro on-cdrs (rec base &rest lsts)
+  "Recurse down LiSTS based on REC, returning BASE as the base case."
   `(funcall (alrec ,rec #'(lambda () ,base)) ,@lsts) )
 
 (defmacro atrec (rec &optional (base 'it))
@@ -564,7 +621,40 @@
 (defmacro on-trees (rec base &rest trees)
   `(funcall (atrec ,rec ,base) ,@trees) )
 
-;;; Cut (Common Lisp Currying like behavior)
+(defun find-all (el lst &optional (off 0))
+  (cond ((null lst) nil)
+        ((eql el (car lst)) (cons off (find-all el (cdr lst) (1+ off))))
+        (t (find-all el (cdr lst) (1+ off))) ))
+
+(defun shuffle-at (guide lst1 lst2 &optional (off 0))
+  (cond ((or (null lst2) (null guide) (null lst1)) lst1)
+        ((= off (car guide))
+         (cons (car lst2) (shuffle-at (cdr guide) lst1 (cdr lst2) off)) )
+        (t (cons (car lst1) (shuffle-at guide (cdr lst1) lst2 (1+ off)))) ))
+
+(defun replace-at (guide lst1 lst2 &optional (off 0))
+  (cond ((or (null lst2) (null guide) (null lst1)) lst1)
+        ((= off (car guide))
+         (cons (car lst2) (replace-at (cdr guide) (cdr lst1) (cdr lst2) (1+ off))) )
+        (t (cons (car lst1) (replace-at guide (cdr lst1) lst2 (1+ off)))) ))
+
+;;; Common Lisp Currying like behavior
+
+;; (defun curry (fn &rest args)
+;;   #'(lambda (&rest args2)
+;;       (apply fn (append args args2)) ))
+
+;; (defun rcurry (fn &rest args)
+;;   #'(lambda (&rest args2)
+;;       (apply fn (append args2 args)) ))
+
+;;; Cute and Cut, similar to SRFI-26
+(defun cute (&rest args)
+  (lambda (&rest free-vars)
+    (let* ((guide (find-all :<> args))
+           (lst (replace-at guide args free-vars)))
+      (apply (car lst) (append (cdr lst) (nthcdr (length guide) free-vars))) )))
+
 (with-compilation-unit (:override nil)
   (defmacro cut ((fn &rest args))
     (let ((new-args (get-cut-params args)))
@@ -579,125 +669,122 @@
                                          (car x) )
                                         (t (replace-cut-slots (cadr x) (car x))) ))
                               new-args ))))))
-
+ 
+  (defun quotep (x)
+    (and (consp x) (eql 'quote (car x))) )
+ 
   (defun contains-cut-slot (tree)
     (funcall
       (ttrav #'(lambda (l r) (or l r))
              #'(lambda (x) (eql x '<>)) )
       tree ))
-
+ 
   (defun replace-cut-slots (tree binding)
     (funcall
       (ttrav #'(lambda (l r) (cons l r))
              #'(lambda (x) (cond ((eql x '<>) binding)
                                  (t x) )))
       tree ))
-
+ 
   (defun get-cut-params (args)
     (mapcar #'list
             (map-into
               (make-list (length args))
               #'(lambda () (gensym "CUT-")) )
-            args ))
-  )
+            args )) )
 
-(defun curry (fn &rest args)
-  #'(lambda (&rest args2)
-      (apply fn (append args args2)) ))
+;; ;; Examples
 
-(defun rcurry (fn &rest args)
-  #'(lambda (&rest args2)
-      (apply fn (append args2 args)) ))
+;; ;;; You can use it to automate function definition, but then again
+;; ;;; you shouldn't have to for the most part anymore.
+;; (macroexpand-1 '(cut (+ 3 <>)))
+;; (setf (symbol-function 'add3) (cut (+ 3 <>)))
+;; (add3 4)
 
-#| Examples
+;; (funcall #.(compose #'sqrt (cut (/ 3 <>))) 323)
 
-;;; You can use it to automate function definition, but then again
-;;; you shouldn't have to for the most part anymore.
-(macroexpand-1 '(cut (+ 3 <>)))
-(setf (symbol-function 'add3) (cut (+ 3 <>)))
-(add3 4)
+;; (mapcar (cut (list <> (list <> 3))) '(1 2 3) '(4 5 6))
 
-(funcall #.(compose #'sqrt (cut (/ 3 <>))) 323)
+;; (mapcar (compose #'sqrt (cut (/ 3 <>))) '(1 2 3 4 5))
 
-(mapcar (cut (list <> (list <> 3))) '(1 2 3) '(4 5 6))
+;; ;;; Use quote to force evaluation of form every invocation (for 
+;; ;;; non-functional code)
+;; (macroexpand-1 '(cut (/ <> '(non-func 3 4))))
 
-(mapcar (compose #'sqrt (cut (/ 3 <>))) '(1 2 3 4 5))
+;; (with-open-file (f-in #p"scratch.lisp")
+;;   (mapcar (cut (list <> (read f-in))) '(first second third)) )
+;; (with-open-file (f-in #p"scratch.lisp")
+;;   (mapcar (cut (list <> '(read f-in))) '(first second third)) )
 
-;;; Use quote to force evaluation of form every invocation (for 
-;;; non-functional code)
-(macroexpand-1 '(cut (/ <> '(non-func 3 4))))
+;; (macroexpand-1 '(cut (func <> 2 (1+ <>) (+ 1 2) 3)))
 
-(with-open-file (f-in #p"scratch.lisp")
-  (mapcar (cut (list <> (read f-in))) '(first second third)) )
-(with-open-file (f-in #p"scratch.lisp")
-  (mapcar (cut (list <> '(read f-in))) '(first second third)) )
+;; (funcall (cut (identity (mvl (funcall <>)))) (cut (floor 1.5)))
 
-(macroexpand-1 '(cut (func <> 2 (1+ <>) (+ 1 2) 3)))
+;; ;; Examples
 
-(funcall (cut (identity (mvl (funcall <>)))) (cut (floor 1.5)))
+;; (funcall (cute #'+ 1) (+ 100 1) 2 3 3)
 
-|#
+;; (funcall (cute (cute #'+ 1) 4))
 
-#| Examples
+;; (funcall (cute #'list 1 2) 4 5 )
 
-(macroexpand-1
-  '(cut (list <> 1 (+ 1 1))) )
+;; (mapcar (cute :<> 3) '(sqrt - 1+))
 
-(macroexpand-1
-  '(cut (list <> 1 2 3 <>)) )
+;; (funcall (cute #'print :<>) (list 1 2 3))
 
-(let ((a 5))
-  (mapcar (cut (list a <> 1)) '(1 2 3 4)) )
+;; ;; Examples
 
-(mapcar (cut (* <> (+ 1 1))) '(1 2 3 4))
+;; (macroexpand-1
+;;   '(cut (list <> 1 (+ 1 1))) )
 
-(mapcar (compose (cut (cons 'hello <>)) #'list) '(how are you))
+;; (macroexpand-1
+;;   '(cut (list <> 1 2 3 <>)) )
 
-(funcall #.(cut (+ 1 pi 43 <>)) 2)
+;; (let ((a 5))
+;;   (mapcar (cut (list a <> 1)) '(1 2 3 4)) )
 
-|#
+;; (mapcar (cut (* <> (+ 1 1))) '(1 2 3 4))
 
-#|
+;; (mapcar (compose (cut (cons 'hello <>)) #'list) '(how are you))
 
-(defmacro t->argn (n form)
-  (with-gensyms (ret "T->ARGN-")
-    `(let ((,ret ,(nth n form)))
-       (if ,form ,ret) )))
+;; (funcall #.(cut (+ 1 pi 43 <>)) 2)
 
-(defun permute-args (
+;; (defmacro t->argn (n form)
+;;   (with-gensyms (ret "T->ARGN-")
+;;     `(let ((,ret ,(nth n form)))
+;;        (if ,form ,ret) )))
 
-(defmacro fill-in (val &body body)
-  `(let ((__ ,val))
-     (
+;; (defun permute-args (
 
-(macroexpand-1 '(t->argn 1 (> 4 3)))
+;; (defmacro fill-in (val &body body)
+;;   `(let ((__ ,val))
+;;      (
 
-(let ((seq1 '(1 2 3 4 5))
-      (seq2 '(4 3 2 1)) )
-  (t->argn 2 (< (length seq1) (length seq2))) )
+;; (macroexpand-1 '(t->argn 1 (> 4 3)))
 
-|#
+;; (let ((seq1 '(1 2 3 4 5))
+;;       (seq2 '(4 3 2 1)) )
+;;   (t->argn 2 (< (length seq1) (length seq2))) )
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Classic macros ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;
+;;;; Classic macros
 
 ;;; Looping (these names conflict with every looping package in existence)
 (defmacro while (test &body body)
   `(do ()
-     ((not ,test))
+       ((not ,test))
      ,@body ))
 
 (defmacro till (test &body body)
   `(do ()
-     (,test)
+       (,test)
      ,@body ))
 
 (defmacro for ((var start stop) &body body)
   (let ((gstop (gensym "FOR-")))
     `(do ((,var ,start (1+ ,var))
           (,gstop ,stop) )
-       ((> ,var ,gstop))
+         ((> ,var ,gstop))
        ,@body )))
 
 ;;; conditional with automatic bind
@@ -715,18 +802,18 @@
        (if ,(caar binds)
          (when-bind* ,(cdr binds) ,@body) ))))
 
-#| Examples
+;; ;; Examples
 
-(when-bind (x 'a) x)
+;; (when-bind (x 'a) x)
 
-(when-bind* ((var1 (member 'a '(f g a b d)))
-             (var2 (member 'd var1))
-             (var3 (< 4 7)) )
-  (values var1 var2 var3) )
-
-|#
+;; (when-bind* ((var1 (member 'a '(f g a b d)))
+;;              (var2 (member 'd var1))
+;;              (var3 (< 4 7)) )
+;;   (values var1 var2 var3) )
 
 (defmacro with-gensyms (syms &body body)
+  "Like everybody elses with-gensyms, but with an optional prefix string
+  as the last element."
   (cond ((stringp (last1 syms))
          `(let ,(mapcar #'(lambda (s) `(,s (gensym ,(concatenate 'string
                                                                  (last1 syms)
@@ -737,19 +824,22 @@
                           syms )
               ,@body ))))
 
-#| Examples
-(with-gensyms (a b c)
-  (list a b c) )
+(defun get-gensyms (n &optional (prefix "G"))
+  "Return n new gensyms with given prefix."
+  (cond ((= n 0) nil)
+        (t (cons (gensym prefix) (get-gensyms (1- n) prefix))) ))
 
-(macroexpand-1
-  '(with-gensyms (a b c "PRE-")
-     (list a b c) ))
+;; ;; Examples
+;; (with-gensyms (a b c)
+;;   (list a b c) )
 
-;;; Adding a descriptive prefix to the generated names can aid in debugging...
-(with-gensyms (gseq ret eof "PREFIX-")
-  (list gseq ret eof) )
+;; (macroexpand-1
+;;   '(with-gensyms (a b c "PRE-")
+;;      (list a b c) ))
 
-|#
+;; ;;; Adding a descriptive prefix to the generated names can aid in debugging...
+;; (with-gensyms (gseq ret eof "PREFIX-")
+;;   (list gseq ret eof) )
 
 (with-compilation-unit (:override nil)
   (defmacro condlet (clauses &body body)
@@ -774,8 +864,7 @@
 
   (defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
     `(,(car cl) (let ,(condlet-binds vars cl)
-                  (,bodfn ,@(mapcar #'cdr vars)) )))
-  )
+                  (,bodfn ,@(mapcar #'cdr vars)) ))) )
 
 (defmacro if3 (test t-case nil-case ?-case)
   "Like if except allows for an ambiguous result if the predicate returns ?"
@@ -784,14 +873,12 @@
      (?     ,?-case)
      (t     ,t-case) ))
 
-#| Examples
-;;; This allows for an unsure altrnative if the first argument returns the 
-;;; symbol ?.  This could be used in cases where a trivalent branch is needed.
-(macroexpand-1 '(if3 '? 't-case 'nil-case ?-case))
+;; ;; Examples
+;; ;;; This allows for an unsure altrnative if the first argument returns the 
+;; ;;; symbol ?.  This could be used in cases where a trivalent branch is needed.
+;; (macroexpand-1 '(if3 '? 't-case 'nil-case ?-case))
 
-(if3 '? 't-case 'nil-case '?-case)
-
-|#
+;; (if3 '? 't-case 'nil-case '?-case)
 
 (defmacro nif (expr pos zero neg)
   "Numerical if with clauses for positive, zero, and negative"
@@ -832,34 +919,31 @@
     (let ((key (car cl)) (rest (cdr cl)))
       (cond ((consp key) `((in ,g ,@key) ,@rest))
             ((inq key t otherwise) `(t ,@rest))
-            (t (error "bad > case clause")) )))
-  )
+            (t (error "bad > case clause")) ))) )
 
-#| Examples
+;; ;; Examples
 
-(nif 10 'p 'z 'n) ; p
-(nif -0 'p 'z 'n) ; z
-(nif -1 'p 'z 'n) ; n
+;; (nif 10 'p 'z 'n) ; p
+;; (nif -0 'p 'z 'n) ; z
+;; (nif -1 'p 'z 'n) ; n
 
-(in 5 1 3 4 5) ; t
-(in -1 5 4 23) ; nil
-(in "hello" "hello" "howdy") ; The test function is eql
+;; (in 5 1 3 4 5) ; t
+;; (in -1 5 4 23) ; nil
+;; (in "hello" "hello" "howdy") ; The test function is eql
 
-(inq 'a b c d a) ; t
-(inq 'a x x y w) ; nil
+;; (inq 'a b c d a) ; t
+;; (inq 'a x x y w) ; nil
 
-(in-if #'integerp 1.5 2/3 4/4) ; t
-(let ((x 6))
-  (in-if #'oddp 2 2 4 4 x) )   ; nil: like (some #'oddp 2 2 4 4 6)
-(in-if #'(lambda (y) (eql 5 y)) 5 4 3) ; t: like (member 5 (list 5 4 3) :test #'eql)
+;; (in-if #'integerp 1.5 2/3 4/4) ; t
+;; (let ((x 6))
+;;   (in-if #'oddp 2 2 4 4 x) )   ; nil: like (some #'oddp 2 2 4 4 6)
+;; (in-if #'(lambda (y) (eql 5 y)) 5 4 3) ; t: like (member 5 (list 5 4 3) :test #'eql)
 
-;;; >case is a version of case that evaluates the keys (like 'a and 'b here)
-(>case 'c
-   (('a) 'hello)
-   (('b) 'howdy)
-   (t   'goodbye) )
-
-|#
+;; ;;; >case is a version of case that evaluates the keys (like 'a and 'b here)
+;; (>case 'c
+;;    (('a) 'hello)
+;;    (('b) 'howdy)
+;;    (t   'goodbye) )
 
 (defmacro do-tuples/o (parms source &body body)
   (if parms
@@ -898,9 +982,8 @@
                                              ,rest ))
                                    len ))))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Multiple value iteration ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Multiple value iteration
 
 (with-compilation-unit (:override nil)
   (defmacro mvdo* (parm-cl test-cl &body body)
@@ -993,13 +1076,8 @@
                                 binds ))
              (go ,label) ))))
 
-#| Examples
-
-|#
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Generalized varaibles ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Generalized varaibles
 
 (defmacro allf (val &rest args)
   (with-gensyms (gval "ALLF-")
@@ -1089,17 +1167,14 @@
                  temps )
        ,@(mapcar #'fourth meths) )))
 
-#| Examples
+;; ;; Examples
 
-(let ((x 1) (y 2) (z 3))
-  (sortf < z y x)
-  (list x y z) )
+;; (let ((x 1) (y 2) (z 3))
+;;   (sortf < z y x)
+;;   (list x y z) )
 
-|#
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Macro-defining macros ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Macro-defining macros
 
 (defmacro abbrev (short long)
   `(defmacro ,short (&rest args)
@@ -1119,9 +1194,8 @@
      ,@(mapcar #'(lambda (p) `(propmacro ,p))
                props )))
 
-;;;;;;;;;;;;;;;;;;;;;
-;;;; Read macros ;;;;
-;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;;; Read macros
 
 ;;; Delimiter read macros
 (let ((rpar (get-macro-character #\) )))
@@ -1141,14 +1215,12 @@
 (defdelim #\{ #\} (&rest args)
   `(fn (compose ,@args)) )
 
-#| Examples
+;; ;; Examples
 
-#[2 7]
+;; #[2 7]
 
-#{1+ car}
-(funcall * '(1d0 2 3))
-
-|#
+;; #{1+ car}
+;; (funcall * '(1d0 2 3))
 
 ;;; A read macro to silence output
 (set-dispatch-macro-character #\# #\!
@@ -1156,15 +1228,12 @@
       (declare (ignore char1 char2))
       `(progn ,(read stream t nil t) (values)) ))
 
-#| Examples
+;; ;; Examples
 
-#!(setf *list* (make-list 1000000))
+;; #!(setf *list* (make-list 1000000))
 
-*list* ; console flooded with output
+;; *list* ; console flooded with output
 
-(unintern '*list*)
+;; (unintern '*list*)
 
-(cl-user:gc :full t)
-
-|#
-
+;; (cl-user:gc :full t)

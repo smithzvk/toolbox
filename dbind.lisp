@@ -8,6 +8,7 @@
 ;;;; Destructuring bind ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
 (with-compilation-unit (:override nil)
 
   (defmacro dbind (pat seq &body body)
@@ -46,10 +47,10 @@
                                   (if (consp (car b))
                                       (cdr b) ))
                               binds )
-                      body )))) )
+                      body )))) ))
 
 #| Examples
-;;; Destructures and binds on any #1=(sequence of atoms or sequences) of #1#
+;;; Destructures and binds on any sequence of lisp objects.
 
 (dbind (a b c) #(1 2 3)
   (list a b c) )
@@ -144,7 +145,7 @@
 
 #| Examples
 
-(let ((lst '(1 (2 3) 4)))
+(let ((lst (copy-tree '(1 (2 3) 4))))
   (with-places (a (b . c) d) lst
     (print (list a b c d))
     (setf a 'uno)

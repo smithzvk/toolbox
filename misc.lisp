@@ -141,6 +141,8 @@
 
 ;;; head
 (defun head (list &optional (n 10))
+  "Return the first N terms in LIST.  Just a wrapper for:
+       (SUBSEQ LIST 0 N)"
   (subseq list 0 n) )
 
 (defun unroll-circular-list (circular-list n)
@@ -156,13 +158,19 @@ elements repeating to make a list of length N."
   "This symbol is used to mark unused elements.  I need a name that
   the user cannot use, hence the gensym." )
 (defun tail (lst n)
-  "Return the last N elements of LiST.  This does not create a new
-list.  As far as lists go, this is about as good as it gets."
-  (do ((lst lst (cdr lst))
-       (tail (n-times n (curry #'cons *empty-sym*) lst)
-             (cdr tail) ))
-      ((and (null lst) (not (eql *empty-sym* (car tail))))
-       tail )))
+  "Return the last N elements of LiST.  If (< N (LENGTH LiST)) then
+LiST is returned.
+
+This is an iterative function that does not create a new list or cons
+anything, really.  As far as lists go, this is about as good as it
+gets."
+  (let ((start (nthcdr n lst)))
+    (if (null start)
+        lst
+        (do ((lst start (cdr lst))
+             (tail lst (cdr tail)) )
+            ((and (null lst) (not (eql *empty-sym* (car tail))))
+             tail )))))
 
 ;; ;; Examples
 

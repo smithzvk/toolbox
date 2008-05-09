@@ -1197,23 +1197,23 @@
 ;;;;;;;;;;;;;;;;
 ;;;; Read macros
 
-;;; Delimiter read macros
-(let ((rpar (get-macro-character #\) )))
-  (defun ddfn (left right fn)
-    (set-macro-character right rpar)
-    (set-dispatch-macro-character #\# left
-      #'(lambda (stream char1 char2)
-          (declare (ignore char1 char2))
-          (apply fn (read-delimited-list right stream t)) ))))
+;; ;;; Delimiter read macros
+;; (let ((rpar (get-macro-character #\) )))
+;;   (defun ddfn (left right fn)
+;;     (set-macro-character right rpar)
+;;     (set-dispatch-macro-character #\# left
+;;       #'(lambda (stream char1 char2)
+;;           (declare (ignore char1 char2))
+;;           (apply fn (read-delimited-list right stream t)) ))))
 
-(defmacro defdelim (left right parms &body body)
-  `(ddfn ,left ,right #'(lambda ,parms ,@body)) )
+;; (defmacro defdelim (left right parms &body body)
+;;   `(ddfn ,left ,right #'(lambda ,parms ,@body)) )
 
-(defdelim #\[ #\] (x y)
-  (list 'quote (mapa-b #'identity (ceiling x) (floor y))) )
+;; (defdelim #\[ #\] (x y)
+;;   (list 'quote (mapa-b #'identity (ceiling x) (floor y))) )
 
-(defdelim #\{ #\} (&rest args)
-  `(fn (compose ,@args)) )
+;; (defdelim #\{ #\} (&rest args)
+;;   `(fn (compose ,@args)) )
 
 ;; ;; Examples
 

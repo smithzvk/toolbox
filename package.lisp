@@ -1,11 +1,11 @@
 
 (defpackage :toolbox
   (:use :cl :anaphora :alexandria)
-  (:shadow #:with-gensyms #:shuffle)
+  (:shadow #:with-gensyms #:shuffle #:getenv #:command-line #:quit)
   (:nicknames :tb)
   (:export ;;; On Lisp
            #:last1 #:single #:append1 #:conc1 #:mklist #:longer
-           #:filter #:group #:group-by #:flatten #:prune #:find2 #:before
+           #:filter #:group #:group-by #:flatten #:flatten-array #:prune #:find2 #:before
            #:after #:duplicate #:split-on #:split-if #:most #:best
            #:mostn #:map-> #:mapa-b #:map1-n #:map0-n #:mappend
            #:mapcars #:rmapcar #:readlist #:prompt #:break-loop
@@ -34,6 +34,7 @@
            #:aif2 #:awhen2 #:awhile2 #:acond2 #:a+
            #:alist #:defanaph
            #:t-ret #:ret-t
+           #:_> #:>_ #:_< #:<_
            ;;
            #:ddfn #:defdelim #:dbind #:destruc
            #:with-matrix #:with-array #:with-struct
@@ -42,7 +43,8 @@
            #:match1 #:gensym? #:length-test
            ;applied ;This stuff is not basic enough, should probably be seperate
            #:=lambda #:=defun
-           #:=bind #:=values #:=funcall #:=apply #:*halt* #:*default-proc*
+           #:=bind #:=values #:=funcall #:=apply
+           ;#:*halt* #:*default-proc*
            ;#:fork #:program #:pick-process #:most-urgent-process
            ;#:arbitrator #:wait #:yield #:setpri #:halt #:kill #:failsym
            ;#:choose #:choose-bind #:cb #:fail #:two-numbers #:defnode #:down
@@ -55,9 +57,12 @@
            #:do-file-by #:do-file-by-lines #:head #:tail
            #:unroll-circular-list
            #:by-elts #:defwrapper #:get-external-symbols #:use-package-excluding
+           #:shadowing-use-package-excluding
            #:n-times #:mapcro
            #:nested-dotimes
            #:fsubvec
+           #:strcat
+           #:copy-directory
            ;;; FCASE
            #-clisp #:fcase
            ;;; Short-hand
@@ -76,4 +81,6 @@
            #:choose #:permute
            ;;; String algorithms
            #:lcs #:levenshtein-dist
+           ;;; Compatibility functions
+           ;#:command-line ;#:raw-command-line #:getenv #:quit
            ))

@@ -12,11 +12,12 @@
                (:file "mvb")
                (:file "fcase")
                (:file "misc")
+               (:file "compat")
 ;               (:file "b-io")
                (:file "numerics")
                (:file "string-algs")
                (:file "number-theory")
                (:file "infix") )
   :serial t
-  :depends-on (:anaphora :alexandria) )
+  :depends-on (:anaphora :alexandria :cl-fad) )
 

@@ -100,19 +100,25 @@
 ;;;; Text file operations ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro do-file-by-lines ((filename line) &body body)
+(defmacro do-file-by-lines ((line filename) &body body)
   (let ((str (gensym "DO-FILE-BY-LINES-")))
     `(with-open-file (,str ,filename :direction :input)
        (do ((,line (read-line ,str nil) (read-line ,str nil))) ((not ,line) nil)
          ,@body ))))
 
-(defmacro do-file-by (fn (file line) &body body)
+(defmacro do-file-by (fn (value file) &body body)
   (with-gensyms (str eof "DO-FILE-BY-")
-    `(with-open-file (,str ,file :direction :input)
-       (do ((,line (funcall ,fn ,str nil ',eof)
-                   (funcall ,fn ,str nil ',eof) ))
-         ((eql ,line ',eof) nil)
-         ,@body ))))
+    (let ((loop `(do ((,value #1=(funcall ,fn ,str nil ',eof) #1#))
+                     ((eql ,value ',eof) nil)
+                   ,@body )))
+    `(if (typep ,file 'pathname)
+         (with-open-file (,str ,file :direction :input) ,loop)
+         (let ((,str ,file)) ,loop) ))))
+
+;(defmacro do-stream-by (fn (value stream ret) &body body)
+;  `(do ((,value #1=(funcall ,fn ,stream) #1#))
+;       ((eql ,eof ,value) ,ret)
+;     ,@body ))
 
 ;;  Examples
 ;; (macroexpand-1
@@ -140,10 +146,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; head
-(defun head (list &optional (n 10))
-  "Return the first N terms in LIST.  Just a wrapper for:
-       (SUBSEQ LIST 0 N)"
-  (subseq list 0 n) )
+(defun head (seq &optional (n 10))
+  "Return the first N terms in SEQuence (vector or list).
+
+For vectors, this is a simple wrap around SUBSEQ.  For lists, this
+procedure is smarter, namely it does not need to travel the entire
+list, just the length you ask for (N)."
+  (etypecase seq
+    (list (if (or (null seq) (= 0 n))
+              nil
+              (let ((ret (list (car seq))))
+                (funcall (alambda (lst cnt ret end)
+                           (cond ((or (null lst) (= 1 cnt)) ret)
+                                 (t (setf (cdr end) (list (car lst)))
+                                    (self (cdr lst) (1- cnt) ret (cdr end)) )))
+                         (cdr seq) n ret ret ))))
+    (vector (subseq seq 0 (min n (length seq)))) ))
 
 (defun unroll-circular-list (circular-list n)
   "Create a proper list out of CIRCULAR-LIST that has the same
@@ -152,12 +170,16 @@ elements repeating to make a list of length N."
         (t (cons (car circular-list)
                  (unroll-circular-list (cdr circular-list) (1- n)) ))))
 
-;;; tail (iterative)
+;;; tail
+(defun tail (seq n)
+  (etypecase seq
+    (list (list-tail seq n))
+    (vector (subseq seq (max (- (length seq) n) 0))) ))
 (defvar *empty-sym*
   (gensym "EMPTY-")
   "This symbol is used to mark unused elements.  I need a name that
   the user cannot use, hence the gensym." )
-(defun tail (lst n)
+(defun list-tail (lst n)
   "Return the last N elements of LiST.  If (< N (LENGTH LiST)) then
 LiST is returned.
 
@@ -243,6 +265,14 @@ in SHADOWS."
           (remove-if (rcurry #'member shadows)
                      (get-external-symbols from-package) )))
 
+(defun shadowing-use-package-excluding (from-package shadows &optional (to-package *package*))
+  "Like USE-PACKAGE except do not import the external symbols listed
+in SHADOWS and automatically shadow existing symbols in TO-PACKAGE
+that cause name conflicts."
+  (mapcar (rcurry #'shadowing-import to-package)
+          (remove-if (rcurry #'member shadows)
+                     (get-external-symbols from-package) )))
+
 ;; ;; Example
 
 ;; (asdf:oos 'asdf:load-op 'verrazano)
@@ -298,4 +328,96 @@ optionally returning RESULT."
                                          body ))))))))
     `(dotimes (,(car vars) (first ,extent) ,result)
        ,@(expand-loops (cdr vars) `(cdr ,extent) body) )))
+
+;; String operations
+
+(defun strcat (&rest args)
+  (declare (inline strcat))
+  (apply #'concatenate 'string args) )
+
+
+;; File system operations
+(defun copy-directory (from-dir to-dir &key reckless (defaults *default-pathname-defaults*))
+  "Copy the entire directory tree from FROM-DIR to TO-DIR.  This is an
+attempt to mimic the unix `cp -r' command, which isn't quite as
+straight forward as it seems.  The following describes what this does
+in terms of the directories as files view of UNIX.
+
+1. Both FROM-DIR and TO-DIR are merged with
+*DEFAULT-PATHNAME-DEFAULTS* or keyword value DEFAULTS.
+
+2. If FROM-DIR is a path (ending in a `/'), then remove the `/' and
+copy the directory.
+
+3. If TO-DIR is a path, copy FROM-DIR to a subdirectory of TO-DIR from
+the most specific directory of FROM-DIR.
+
+4. If TO-DIR is a file, copy the contents of FROM-DIR to TO-DIR
+effectively renaming the directory in the move.
+
+5. If there is any danger of overwriting files, continuable errors are
+raised unless reckless is true.
+
+Examples:
+
+;; FILE SYSTEM: +-+dir1
+;;                +-+sub1
+;;                +--file1
+
+;; (copy-directory #p\"dir1\" #p\"dir2\")
+
+;; FILE SYSTEM: +-+dir1
+;;                +-+sub1
+;;                +--file1
+;;              +-+dir2
+;;                +-+sub1
+;;                +--file1
+
+;; (copy-directory #p\"dir1/\" #p\"dir2/\")
+
+;; FILE SYSTEM: +-+dir1
+;;                +-+sub1
+;;                +--file1
+;;              +-+dir2
+;;                +-+dir1
+;;                  +-+sub1
+;;                  +--file1
+;;                +-+sub1
+;;                +--file1
+
+TODO/BUGS: 1. We do not resolve symbolic links (due to potability).
+           2. File permissions are not copied (again, portability)."
+  (let* ((overwrite-dir? (and (not (fad:directory-pathname-p to-dir))
+                              (fad:directory-exists-p to-dir) ))
+         (dir-exists? (and (fad:directory-pathname-p to-dir)
+                           (fad:directory-exists-p
+                            (merge-pathnames
+                             (make-pathname
+                              :name (last1 (pathname-directory from-dir))) to-dir))))
+         (from-dir (merge-pathnames from-dir defaults))
+         (to-dir (merge-pathnames to-dir defaults)) )
+    (cond ((and (not reckless) overwrite-dir?)
+           (cerror
+            "Go ahead and do it."
+            "~a exists, this could trash it. Call with RECKLESS as T to not heed this warning."
+            to-dir ))
+          ((and (not reckless) dir-exists?)
+           (cerror
+            "Go ahead and do it."
+            "~a exists, this could trash it. Call with RECKLESS as T to not heed this warning."
+            (merge-pathnames
+             (make-pathname :name (last1 (pathname-directory from-dir))) to-dir )))
+          (t 
+           (let ((from-dir (if overwrite-dir?
+                               (fad:pathname-as-directory from-dir)
+                               (fad:pathname-as-file from-dir) ))
+                 (to-dir (fad:pathname-as-directory to-dir)) )
+             (fad:walk-directory
+              from-dir
+              (/. (x) 
+                (let ((to-pathspec
+                       (merge-pathnames (enough-namestring x from-dir) to-dir) ))
+                  (ensure-directories-exist to-pathspec)
+                  (ignore-errors (fad:copy-file x to-pathspec :overwrite t)) ))
+              :directories nil ))))))
 

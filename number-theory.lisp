@@ -41,7 +41,7 @@
 
 (with-compilation-unit (:override nil)
   (defun miller-rabin (n &optional (chance-of-error 1d-10))
-    "Miller-Rabin probabilistic primality test:
+    "MILLER-RABIN probabilistic primality test:
     Checks if N is prime with the chance of a false positive less than
     CHANCE-OF-ERROR.  This algorithm never gives false negatives."
     (declare (optimize (speed 3) (debug 0)))
@@ -67,6 +67,9 @@
                     ((or ret (= i s)) (if (/= i s) t)) ) n )
               (t nil) ))))
   (defun gen-prime (n-bits &optional (prime? #'miller-rabin))
+    "Generate a prime that is N-BITS long (less than 2^N-BITS).  Just
+try random number of the right length until we find one that is
+prime (we use MILLER-RABIN for the test here)."
     (declare (optimize (speed 3) (debug 0)))
     (let ((max (1- (expt 2 n-bits))))
       (aif (funcall prime? (1+ (* 2 (random max))))
@@ -76,16 +79,14 @@
 ;;; Define some common name interfaces
 (defwrapper prime? miller-rabin)
 
-#| Examples
+;; Examples
 
-;;; We are extremely sure that this is prime
-(miller-rabin 101 1d-200)
+;; We are extremely sure that this is prime
+;; (miller-rabin 101 1d-200)
 
-(time (gen-prime 128) )
-(time (gen-prime 256) )
-(time (gen-prime 512) )
-
-|#
+;; (time (gen-prime 128) )
+;; (time (gen-prime 256) )
+;; (time (gen-prime 512) )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; General Factoring ;;;;

@@ -75,6 +75,10 @@
 ;;                    (t (rec (car x) (rec (cdr x) acc))) )))
 ;;     (rec x nil) ))
 
+(defun flatten-array (array)
+  (make-array (apply #'* (array-dimensions array))
+              :displaced-to array ))
+
 (defun prune (test tree)
   (labels ((rec (tree acc)
              (cond ((null tree) (nreverse acc))
@@ -223,7 +227,7 @@
 ;; (any nil nil t nil)
 ;; (any nil nil)
 
-;;; Some > < operations with more useful return values
+;;; Some pseudo-predicate > < functions
 (defun _> (a b)
   (declare (inline _>))
   (if (> a b) a nil) )
@@ -381,8 +385,8 @@
   (let ((cache (if size-p
                    (make-hash-table :size size :test test)
                    (make-hash-table :test test)) ))
-    (defun clear-memos () (setf cache (make-hash-table :test test)))
-    (defun get-hash () cache)
+;    (defun clear-memos () (setf cache (make-hash-table :test test)))
+;    (defun get-hash () cache)
     (lambda (&rest args)
       (multiple-value-bind (val win) (gethash (funcall arg-fn args) cache)
         (if win
@@ -881,7 +885,7 @@
 ;; (if3 '? 't-case 'nil-case '?-case)
 
 (defmacro nif (expr pos zero neg)
-  "Numerical if with clauses for positive, zero, and negative"
+  "Numerical IF with clauses for positive, zero, and negative"
   (let ((g (gensym "NIF-")))
     `(let ((,g ,expr))
        (cond ((plusp ,g) ,pos)

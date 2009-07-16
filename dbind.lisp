@@ -49,19 +49,17 @@
                               binds )
                       body )))) ))
 
-#| Examples
-;;; Destructures and binds on any sequence of lisp objects.
+;; Examples
+;; ;;; Destructures and binds on any sequence of lisp objects.
 
-(dbind (a b c) #(1 2 3)
-  (list a b c) )
-(dbind (a (b c) d) '(1 #(2 3) 4)
-  (list a b c d) )
-(dbind (a (b . c) &rest d) '(1 "fribble" 2 3 4)
-  (list a b c d) )
-(dbind (a (b (c (d (e))))) '(1 #(2 (3 #(4 "5"))))
-  (list a b c d e) )
-
-|#
+;; (dbind (a b c) #(1 2 3)
+;;   (list a b c) )
+;; (dbind (a (b c) d) '(1 #(2 3) 4)
+;;   (list a b c d) )
+;; (dbind (a (b . c) &rest d) '(1 "fribble" 2 3 4)
+;;   (list a b c d) )
+;; (dbind (a (b (c (d (e))))) '(1 #(2 (3 #(4 "5"))))
+;;   (list a b c d e) )
 
 (defmacro with-matrix (pats ar &body body)
   (let ((gar (gensym "WITH-MATRIX-")))
@@ -95,34 +93,33 @@
                      fields )
          ,@body ))))
 
-#| Examples
-;;; Destructures arrays, matricies, and structures.
+;; Examples
+;; ;;; Destructures arrays, matricies, and structures.
 
-(let ((mat (make-array '(3 3) :initial-contents '((00 01 02)
-                                                  (10 11 12)
-                                                  (20 21 22) ))))
-  (with-matrix ((a b c)
-                (d e f)
-                (g h i) )
-               mat
-    (print (list a b c d e f g h i))
-    (setf a 33) )
-  (print mat)
-  (with-array ((a 0 0) (b 1 1) (c 2 2)) mat
-    (list a b c) ))
+;; (let ((mat (make-array '(3 3) :initial-contents '((00 01 02)
+;;                                                   (10 11 12)
+;;                                                   (20 21 22) ))))
+;;   (with-matrix ((a b c)
+;;                 (d e f)
+;;                 (g h i) )
+;;                mat
+;;     (print (list a b c d e f g h i))
+;;     (setf a 33) )
+;;   (print mat)
+;;   (with-array ((a 0 0) (b 1 1) (c 2 2)) mat
+;;     (list a b c) ))
 
-(defstruct visitor name title firm)
-(defvar theo (make-visitor :name "Theodebert"
-                           :title 'king
-                           :firm 'franks ))
-(with-struct (visitor- name firm title) theo
-  (list name firm title) )
-
-|#
+;; (defstruct visitor name title firm)
+;; (defvar theo (make-visitor :name "Theodebert"
+;;                            :title 'king
+;;                            :firm 'franks ))
+;; (with-struct (visitor- name firm title) theo
+;;   (list name firm title) )
 
 ;; with-places only works with sequences
 ;; Also it works by modifying your code to reference the location of the actual
 ;; memory instead of the local binding (like with-slots)
+
 (with-compilation-unit (:override nil)
   (defmacro with-places (pat seq &body body)
     (let ((gseq (gensym "WITH-PLACES-")))
@@ -143,26 +140,22 @@
                                              binds )
                                      body )))) )
 
-#| Examples
+;; Examples
 
-(let ((lst (copy-tree '(1 (2 3) 4))))
-  (with-places (a (b . c) d) lst
-    (print (list a b c d))
-    (setf a 'uno)
-    (setf c '(tre)) )
-  lst )
+;; (let ((lst (copy-tree '(1 (2 3) 4))))
+;;   (with-places (a (b . c) d) lst
+;;     (print (list a b c d))
+;;     (setf a 'uno)
+;;     (setf c '(tre)) )
+;;   lst )
 
-|#
+;; Example of symbol-macrolet
 
-#| Example of symbol-macrolet
-
-(let ((lst '(1 2 3 4 5)))
-  (symbol-macrolet ((first (car lst))
-                    (setq setf) )
-    (setq first 15)
-    lst ))
-
-|#
+;; (let ((lst '(1 2 3 4 5)))
+;;   (symbol-macrolet ((first (car lst))
+;;                     (setq setf) )
+;;     (setq first 15)
+;;     lst ))
 
 (with-compilation-unit (:override nil)
   (defun match (x y &optional binds)
@@ -187,16 +180,14 @@
       (let ((b (recbind x binds)))
         (values (cdr b) b) ))) )
 
-#| Examples
+;; Examples
 
-(match '(p a b c a) '(p ?x ?y c ?x))
-(match '(a b c) '(a a a))
-(match '(a b c) '(a b c)) ; Matched but no bindings
-(match '(p ?x) '(p ?x)) ; Also matched but no bindings can be determined
+;; (match '(p a b c a) '(p ?x ?y c ?x))
+;; (match '(a b c) '(a a a))
+;; (match '(a b c) '(a b c)) ; Matched but no bindings
+;; (match '(p ?x) '(p ?x)) ; Also matched but no bindings can be determined
 
-(match '(?x _ b) '(a z _)) ; _ is a wildcard
-
-|#
+;; (match '(?x _ b) '(a z _)) ; _ is a wildcard
 
 ;;; Compiled implementation
 
@@ -261,26 +252,23 @@
           `(= (length ,pat) ,(length rest))
           `(> (length ,pat) ,(- (length rest) 2)) ))) )
 
-#| Interpreted implementation
+;; Interpreted implementation
 
-(defmacro if-match (pat seq then &optional else)
-  `(aif2 (match ',pat ,seq)
-         (let ,(mapcar #'(lambda (v)
-                           `(,v (binding ',v it)) )
-                       (vars-in then #'atom) )
-           ,then )
-         ,else ))
+;; (defmacro if-match (pat seq then &optional else)
+;;   `(aif2 (match ',pat ,seq)
+;;          (let ,(mapcar #'(lambda (v)
+;;                            `(,v (binding ',v it)) )
+;;                        (vars-in then #'atom) )
+;;            ,then )
+;;          ,else ))
 
-|#
+;; Examples
 
-#| Examples
+;; (defun abab (seq)
+;;   (if-match (?x ?y ?x ?y) seq
+;;             (values ?x ?y)
+;;             nil ))
 
-(defun abab (seq)
-  (if-match (?x ?y ?x ?y) seq
-            (values ?x ?y)
-            nil ))
+;; (abab '(hi ho hi ho))
 
-(abab '(hi ho hi ho))
-
-|#
 

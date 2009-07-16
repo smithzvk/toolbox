@@ -38,6 +38,11 @@
 ;; (mklist '(5))
 ;; (mklist 5)
 
+(defun longer-than (n list)
+  (if (or (= n 0) (not list))
+      list
+      (longer-than (1- n) (cdr list)) ))
+
 (defun longer (x y)
   (labels ((compare (x y)
              (and (consp x)
@@ -99,18 +104,18 @@
             (values (car lst) val)
             (find2 fn (cdr lst)) ))))
 
-(defun before (x y lst &key (test #'eql))
-  "Is the first occurence of X before Y in LST using TEST"
-  (and lst
-       (let ((first (car lst)))
-         (cond ((funcall test y first) nil)
-               ((funcall test x first) lst)
-               (t (before x y (cdr lst) :test test)) ))))
+;; (defun before (x y lst &key (test #'eql))
+;;   "Is the first occurence of X before Y in LST using TEST"
+;;   (and lst
+;;        (let ((first (car lst)))
+;;          (cond ((funcall test y first) nil)
+;;                ((funcall test x first) lst)
+;;                (t (before x y (cdr lst) :test test)) ))))
 
-(defun after (x y lst &key (test #'eql))
-  "Is the first occurence of X after Y in LST using TEST"
-  (let ((rest (before y x lst :test test)))
-    (and rest (member x rest :test test)) ))
+;; (defun after (x y lst &key (test #'eql))
+;;   "Is the first occurence of X after Y in LST using TEST"
+;;   (let ((rest (before y x lst :test test)))
+;;     (and rest (member x rest :test test)) ))
 
 ;; ;; Examples
 
@@ -774,22 +779,22 @@
 ;;;; Classic macros
 
 ;;; Looping (these names conflict with every looping package in existence)
-(defmacro while (test &body body)
-  `(do ()
-       ((not ,test))
-     ,@body ))
+;; (defmacro while (test &body body)
+;;   `(do ()
+;;        ((not ,test))
+;;      ,@body ))
 
-(defmacro till (test &body body)
-  `(do ()
-       (,test)
-     ,@body ))
+;; (defmacro till (test &body body)
+;;   `(do ()
+;;        (,test)
+;;      ,@body ))
 
-(defmacro for ((var start stop) &body body)
-  (let ((gstop (gensym "FOR-")))
-    `(do ((,var ,start (1+ ,var))
-          (,gstop ,stop) )
-         ((> ,var ,gstop))
-       ,@body )))
+;; (defmacro for ((var start stop) &body body)
+;;   (let ((gstop (gensym "FOR-")))
+;;     `(do ((,var ,start (1+ ,var))
+;;           (,gstop ,stop) )
+;;          ((> ,var ,gstop))
+;;        ,@body )))
 
 ;;; conditional with automatic bind
 (defmacro when-bind ((var expr) &body body)
@@ -845,13 +850,20 @@
 ;; (with-gensyms (gseq ret eof "PREFIX-")
 ;;   (list gseq ret eof) )
 
+;; (with-compilation-unit (:override nil)
+;;   (defmacro condlet (clauses &body body)
+;;     "Conditional bindings"
+;;     `(cond ,@(mapcar #'(lambda (cl)
+;;                          `(,(car cl) (let ,(cdr cl) ,@body)) )
+;;                      clauses ))) )
+
 (with-compilation-unit (:override nil)
   (defmacro condlet (clauses &body body)
     "Conditional bindings"
     (let ((bodfn (gensym "CONDLET-"))
           (vars (mapcar #'(lambda (v) (cons v (gensym "CONDLET-")))
                         (remove-duplicates
-                          (mapcar #'car
+                          (mapcar (lambda (x) (if (listp x) (car x) x))
                                   (mappend #'cdr clauses) )))))
       `(labels ((,bodfn ,(mapcar #'car vars)
                         ,@body ))
@@ -892,12 +904,12 @@
              ((zerop ,g) ,zero)
              (t ,neg) ))))
 
-(defmacro in (obj &rest choices)
-  "Member for the first argument in the rest of the arguments"
-  (let ((insym (gensym "IN-")))
-    `(let ((,insym ,obj))
-       (or ,@(mapcar #'(lambda (c) `(eql ,insym ,c))
-                     choices )))))
+;; (defmacro in (obj &rest choices)
+;;   "Member for the first argument in the rest of the arguments"
+;;   (let ((insym (gensym "IN-")))
+;;     `(let ((,insym ,obj))
+;;        (or ,@(mapcar #'(lambda (c) `(eql ,insym ,c))
+;;                      choices )))))
 
 (defmacro inq (obj &rest args)
   "Like in, but quote the rest of the arguments"
@@ -1084,18 +1096,20 @@
 ;;;; Generalized varaibles
 
 (defmacro allf (val &rest args)
+  "Set all places in ARGS to VAL."
   (with-gensyms (gval "ALLF-")
     `(let ((,gval ,val))
        (setf ,@(mapcan #'(lambda (a) (list a gval))
                        args )))))
 
-(defmacro nilf (&rest args) `(allf nil ,@args))
+(defmacro nilf (&rest args) "Set all ARGS to NIL" `(allf nil ,@args))
 
-(defmacro tf (&rest args) `(allf t ,@args))
+(defmacro tf (&rest args) "Set all ARGS to T" `(allf t ,@args))
 
-(define-modify-macro toggle2 () not)
+(define-modify-macro toggle2 () not "Toggle the truthfulness of argument.")
 
 (defmacro toggle (&rest args)
+  "Toggle the truthfulness on each place in ARGS."
   `(progn
      ,@(mapcar #'(lambda (a) `(toggle2 ,a))
                args )))

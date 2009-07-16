@@ -16,8 +16,8 @@ conditions"
 
 #| Examples
 
-(=~ 1d-2 1.414 (sqrt 2) (sqrt 2.001))
+\(=~ 1d-2 1.414 (sqrt 2) (sqrt 2.001))
 
-(apply (cute #'=~ 1d-2) (list 1.414 (sqrt 2)))
+\(apply (cute #'=~ 1d-2) (list 1.414 (sqrt 2)))
 
 |#

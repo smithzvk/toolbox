@@ -1,27 +1,31 @@
 
 (defpackage :toolbox
-  (:use :cl :anaphora :alexandria)
+  (:use :cl :anaphora :alexandria #:iter)
+  (:shadowing-import-from :iter #:in #:for #:while)
   (:shadow #:with-gensyms #:shuffle #:getenv #:command-line #:quit)
   (:nicknames :tb)
   (:export ;;; On Lisp
-           #:last1 #:single #:append1 #:conc1 #:mklist #:longer
-           #:filter #:group #:group-by #:flatten #:flatten-array #:prune #:find2 #:before
-           #:after #:duplicate #:split-on #:split-if #:most #:best
+           #:last1 #:single #:append1 #:conc1 #:mklist #:longer-than #:longer
+           #:filter #:group #:group-by #:flatten #:flatten-array #:prune #:find2
+           ;; #:before #:after
+           #:duplicate #:split-on #:split-if #:most #:best
            #:mostn #:map-> #:mapa-b #:map1-n #:map0-n #:mappend
            #:mapcars #:rmapcar #:readlist #:prompt #:break-loop
            #:break-toplevel #:mkstr #:symb #:reread #:explode #:memoize
            ;; Function builders (functions)
            #:compose #:fif #:fint #:fun #:lrec #:ttrav #:trec
-           ;; Functioin builders (macros)
+           ;; Function builders (macros)
            #:fn #:alrec #:on-cdrs #:atrec #:on-trees
            #:cute #:cut #:<>
            #:unforced #:delay #:force
+           #:curry #:rcurry
            ;; Iteration (remove?)
-           #:while #:till #:for
+           ;; #:while #:till #:for
            #:when-bind #:when-bind*
            ;; WITH-GENSYMS, mine is better
            #:with-gensyms
-           #:condlet-binds #:condlet-clause #:condlet #:if3 #:nif #:in
+           #:condlet-binds #:condlet-clause #:condlet #:if3 #:nif
+           ;; #:in
            #:inq #:in-if #:>casex #:>case #:do-tuples/o #:dt-args
            #:do-tuples/c #:mvdo* #:shuffle
            #:mvpsetq #:mvdo #:allf #:nilf #:tf #:toggle #:_f #:pull
@@ -57,14 +61,22 @@
            #:do-file-by #:do-file-by-lines #:head #:tail
            #:unroll-circular-list
            #:by-elts #:defwrapper #:get-external-symbols #:use-package-excluding
-           #:shadowing-use-package-excluding
+           #:shadowing-use-package
            #:n-times #:mapcro
            #:nested-dotimes
            #:fsubvec
            #:strcat
            #:copy-directory
-           ;;; FCASE
-           #-clisp #:fcase
+           #:chop-array
+           #:outer-truncate
+           #:transpose-lists
+           #:combine-pathnames
+           #:rgb<-wavelength
+           #:maptree
+           #:format-ext
+           #:with-dynamic-environment
+           #:lambda-in-dyn-env
+           #:flet-in-dyn-env
            ;;; Short-hand
            #:mvb #:mvl #:mve #:/.
            ;;; Numerics
@@ -83,4 +95,6 @@
            #:lcs #:levenshtein-dist
            ;;; Compatibility functions
            ;#:command-line ;#:raw-command-line #:getenv #:quit
+           ;;; FCASE
+           #-clisp #:fcase
            ))

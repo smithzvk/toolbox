@@ -19,5 +19,5 @@
                (:file "number-theory")
                (:file "infix") )
   :serial t
-  :depends-on (:anaphora :alexandria :cl-fad) )
+  :depends-on (:anaphora :alexandria :cl-fad :iterate) )
 

@@ -265,13 +265,13 @@ in SHADOWS."
           (remove-if (rcurry #'member shadows)
                      (get-external-symbols from-package) )))
 
-(defun shadowing-use-package-excluding (from-package shadows &optional (to-package *package*))
+(defun shadowing-use-package (from-package &optional exclude (to-package *package*))
   "Like USE-PACKAGE except do not import the external symbols listed
 in SHADOWS and automatically shadow existing symbols in TO-PACKAGE
 that cause name conflicts."
-  (mapcar (rcurry #'shadowing-import to-package)
-          (remove-if (rcurry #'member shadows)
-                     (get-external-symbols from-package) )))
+  (let ((syms (remove-if (rcurry #'member exclude) (get-external-symbols from-package))))
+    (mapcar (rcurry #'shadowing-import to-package) syms)
+    syms ))
 
 ;; ;; Example
 
@@ -333,7 +333,7 @@ optionally returning RESULT."
 
 (defun strcat (&rest args)
   (declare (inline strcat))
-  (apply #'concatenate 'string args) )
+  (apply #'concatenate 'string (mapcar #'mkstr args)) )
 
 
 ;; File system operations
@@ -421,3 +421,180 @@ TODO/BUGS: 1. We do not resolve symbolic links (due to potability).
                   (ignore-errors (fad:copy-file x to-pathspec :overwrite t)) ))
               :directories nil ))))))
 
+(defun chop-array (vec length skip &optional (start 0) (end (length vec)))
+  "Chop up VECtor from START to END in vectors of length LENGTH,
+skiping SKIP elements inbetween segments and return it in a list.  All
+vectors returned are of length LENGTH, if the last vector would extend
+past END, it is not included.
+
+Ex:
+ (chop-array \"hello how are you?\" 2 2 1)
+ ==> (\"el\" \" h\"  \" a\"  \" y\")"
+  (if (> (+ start length) end) nil
+      (cons (fsubvec vec start (min end (+ start length)))
+            (chop-array vec length skip (+ start length skip) end) )))
+
+(defun outer-truncate (x)
+  (nif x
+      (1+ (truncate x))
+      0
+      (1- (truncate x)) ))
+
+(defun combine-pathnames (pn1 pn2)
+  (pathname (strcat (namestring pn1) (namestring pn2))) )
+
+(defun transpose-lists (list-struct)
+  (let ((out (make-array (length (car list-struct)) :initial-element nil)))
+    (iter (for row in list-struct)
+          (iter (for el in row)
+                (for i from 0)
+                (push el (aref out i)) ))
+    (map 'list #'nreverse out) ))
+
+;; Could be dangerous.  I am defining a read macro here that was
+;; originally written by Yury Sulsky
+
+;;add python-style multi-line strings
+(eval-when (:execute :load-toplevel :compile-toplevel)
+
+  (let ((normal-string-reader (get-macro-character #\")))
+    (declare (type function normal-string-reader))
+    (defun read-multiline-string (stream c)
+      (let ((buffer ()))
+        (when (not (char= #\" (peek-char nil stream)))
+          (return-from read-multiline-string
+            (funcall normal-string-reader stream c)))
+        (read-char stream)
+
+        (when (not (char= #\" (peek-char nil stream)))
+          (return-from read-multiline-string
+            ""))
+        (read-char stream)
+
+        (do ((chars (list (read-char stream)
+                          (read-char stream)
+                          (read-char stream))
+                    (cdr (nconc chars (list (read-char stream))))))
+            ((every #'(lambda (c) (eq c #\")) chars)
+             (coerce (nreverse buffer) 'string))
+          (push (car chars) buffer)))))
+
+  (set-macro-character #\" #'read-multiline-string))
+
+(defun rgb<-wavelength (wl &key integer-max (gamma 0.80))
+  "Translate a wavelength of light into a rough approximation of what
+RGB triple it would corresponds too.  GAMMA adjusts the gamma, and
+INTEGER-MAX allows you to specify a scaling factor (like 255) that the
+triple will be rounded to.  If WL is outside the visible range, which
+we are taking to be 380 - 780nm, we return black.
+
+Apparently doing this right is a very tricky problem, so we find
+ourselves with this hack.  This is stolen from Dan Bruton."
+  (let ((rgb (cond ((<= 380 wl 440)
+                    (list (- (/ (- wl 440) (- 440 380))) 0 1) )
+                   ((<= 440 wl 490)
+                    (list 0 (/ (- wl 440) (- 490 440)) 1) )
+                   ((<= 490 wl 510)
+                    (list 0 1 (- (/ (- wl 510) (- 510 490)))) )
+                   ((<= 510 wl 580)
+                    (list (/ (- wl 510) (- 580 510)) 1 0) )
+                   ((<= 580 wl 645)
+                    (list 1 (- (/ (- wl 645) (- 645 580))) 0) )
+                   ((<= 645 wl 780)
+                    (list 1 0 0) )
+                   (t (list 0 0 0)) )))
+    (flet ((adjust (color factor)
+             (if integer-max
+                 (round (* integer-max (expt (* color factor) gamma)))
+                 (expt (* color factor) gamma) )))
+      (cond ((<= 380 wl 420)
+             (mapcar (/. (x) (adjust x (+ 0.3 (/ (* 0.7 (- wl 380)) (- 420 380))))) rgb) )
+            ((<= 700 wl 780)
+             (mapcar (/. (x) (adjust x (+ 0.3 (/ (* 0.7 (- 780 wl)) (- 780 700))))) rgb) )
+            (t ;; Either in the middle or out of the visible range
+             (mapcar (/. (x) (adjust x 1)) rgb) )))))
+
+(defun maptree (function tree)
+  "This calls FUNCTION on each element of TREE that is an atom.  If
+you want FUNCTION to operate on lists or any type of cons for that
+matter, this function is not for you."
+  (mapcar (/. (x) (if (consp x)
+                     (maptree function x)
+                     (funcall function x) ))
+          tree ))
+
+(defun format-ext (str control-string &rest args)
+  "Just like format, except convert certain elements in the arg list
+into forms more readable by other programs.  For instance, print all
+number types in the 1e0 format \(i.e. no fractions or 1d0s), and print
+pathnames as namestrings.
+
+Format has all sorts of nooks and crannies, so I bet that this
+facility can be broken without too much effort."
+  (let ((*read-default-float-format* 'long-float))
+    (apply #'format str control-string
+           (funcall
+            (ttrav #'cons (/. (x) (typecase x
+                                   (number (float x 0L0))
+                                   (pathname (namestring x))
+                                   (t x) )))
+            args ))))
+;;                     (maptree (/. (x)
+;;                                (typecase x
+;;                                  (float (float x 0L0))
+;;                                  (pathname (namestring x))
+;;                                  (t x) ))
+;;                              args ))))
+
+(defmacro lambda-in-dyn-env (specials vars &body body)
+  "Define an anonymous function with lambda list VARS and BODY which executes
+with the specified dynamic variables in SPECIALS bound as they are when it is
+declared (not as they are when it is called).  This kind of defeating the
+purpose of dynamic variables, but I find it useful when writing callback
+functions (which are invoked in code that I did not write and thus have little
+control over the dynamic bindings there).  Note that declarations in the body
+are handled correctly.
+
+Ex:
+ (let ((*print-pretty* nil))
+   (lambda-in-dyn-env (*print-pretty*) (some-form some-other-variable)
+     (declare (ignore some-other-variable))
+     (print some-form) ))
+
+...will print without pretty printing when invoked (no matter that the dynamic
+bindings are at that time).
+
+I find it preferable to actually SETFing the dynamic variables.  If anyone has
+a better way to do what I am trying to do, I would like to know it (like not
+using dynamic variables at all?)."
+  (let ((var-names (get-gensyms (length specials))))
+    (multiple-value-bind (body-decl body)
+        (split-if (/. (x) (not (eql (car x) 'cl:declare))) body)
+      `(let ,(group (shuffle var-names specials) 2)
+         (lambda ,vars
+           ,@body-decl
+           (let ,(group (shuffle specials var-names) 2)
+             (declare (special ,@specials))
+             ,@body ))))))
+
+(defmacro flet-in-dyn-env (specials flets &body body)
+  (let ((var-names (get-gensyms (length specials))))
+    `(let ,(group (shuffle var-names specials) 2)
+       (flet ,(iter (for (name args &body body) in flets)
+                    (collecting
+                     (list name args
+                           `(let ,(group (shuffle specials var-names) 2)
+                              (declare (special ,@specials))
+                              ,@body ))))
+         ,@body ))))
+
+;; Doesn't work.  Shouldn't it?  It would be nicer than making
+;; lambda-in-dyn-env, flet-in-dyn-env, etc...
+
+;; (defmacro with-dynamic-environment ((&rest specials) &body body)
+;;   (if (null specials)
+;;       `(progn ,@body)
+;;       (with-gensyms (spec-sym "WITH-DYNAMIC-ENVIRONMENT")
+;;         `(let ((,spec-sym ,(first specials)))
+;;            (let ((,(first specials) ,spec-sym))
+;;              (with-dynamic-environment ,(cdr specials) ,@body) ))) ))

@@ -333,7 +333,7 @@ optionally returning RESULT."
 
 (defun strcat (&rest args)
   (declare (inline strcat))
-  (apply #'concatenate 'string (mapcar #'mkstr args)) )
+  (apply #'concatenate 'string args) )
 
 
 ;; File system operations

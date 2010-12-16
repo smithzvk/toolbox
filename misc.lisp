@@ -3,7 +3,7 @@
 
 ;;;; BY-ELTS : cons-free, implicit iteration over vectors
 ;;;; is this needed anymore?
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro by-elts (vec-spec &body body)
     (mvb (vecs specs) (parse-vec-spec vec-spec)
       (let* ((itr-syms (get-gensyms (length (car specs)) "BY-ELTS-"))
@@ -50,7 +50,7 @@
   (defun get-spec (vec-spec)
     (if (atom vec-spec) ; Set default spec (every element of a vector)
         `((:range 0 (length ,vec-spec)))
-        (parse-spec (car vec-spec) (cdr vec-spec) 0) )) )
+        (parse-spec (car vec-spec) (cdr vec-spec) 0) )) ;;)
 
 ;; ;; Examples
 
@@ -170,6 +170,11 @@ elements repeating to make a list of length N."
         (t (cons (car circular-list)
                  (unroll-circular-list (cdr circular-list) (1- n)) ))))
 
+(defun roll-list (list)
+  (let ((circular-list (copy-list list)))
+    (setf (cdr (last circular-list)) circular-list)
+    circular-list ))
+
 ;;; tail
 (defun tail (seq n)
   (etypecase seq
@@ -219,11 +224,26 @@ and removing the copying is faster."
                                  (fill-pointer vec) )
               :adjustable (adjustable-array-p vec) ))
 
-;; (abbrev /. lambda)
-;; Do it this way so we know the lambda list.  Can we make abbrev so
-;; it doesn't lose this information?  It would have to have the source.
-(defmacro /. (args &body body)
-  `(lambda ,args ,@body) )
+(defmacro /. (args &rest body)
+  "A little lambda replacement, the ``/.'' is stolen from the Qi
+programming language.  Originally just to save typing and horizontal
+space.  Extened it to allow for ignored arguments which are designated
+by the ``_'' symbol."
+  (let ((arglist (mapcar (lambda (arg) (if (and (symbolp arg)
+                                           (equalp (symbol-name arg) "_") )
+                                      (cons :gensym (gensym "IGNORED"))
+                                      arg ))
+                         args )))
+    `(lambda ,(mapcar (lambda (arg)
+                   (if (and (consp arg)
+                            (eql (car arg) :gensym) )
+                       (cdr arg)
+                       arg )) arglist)
+       (declare (ignore ,@(mapcar #'cdr (remove-if-not (lambda (arg)
+                                                         (and (consp arg)
+                                                              (eql (car arg) :gensym) ))
+                                                       arglist ))))
+       ,@body )))
 
 (defmacro defwrapper (wrapper func &optional comment)
   "Create a wrapper function for a function.  This allows for a general
@@ -414,7 +434,7 @@ TODO/BUGS: 1. We do not resolve symbolic links (due to potability).
                  (to-dir (fad:pathname-as-directory to-dir)) )
              (fad:walk-directory
               from-dir
-              (/. (x) 
+              (/. (x)
                 (let ((to-pathspec
                        (merge-pathnames (enough-namestring x from-dir) to-dir) ))
                   (ensure-directories-exist to-pathspec)
@@ -598,3 +618,134 @@ using dynamic variables at all?)."
 ;;         `(let ((,spec-sym ,(first specials)))
 ;;            (let ((,(first specials) ,spec-sym))
 ;;              (with-dynamic-environment ,(cdr specials) ,@body) ))) ))
+
+(defmacro dbp (&rest forms)
+  "DeBug Pring: A little macro that prints several forms.  Mainly this
+is to make removing debugging print statement simpler since, unlike
+PRINT, DBP is only used for debugging prints.  In the future I might
+make a conditional macroexpand that will only print if certain debug
+flags are set, maybe."
+  `(progn
+     (format *error-output*
+             "~%DBP:~{~%~{~S ~^= ~}~}"
+             (mapcar (/. (x y) (list x y)) ',forms (list ,@forms) ))))
+
+(defun nd-index (linear extents)
+  "Given a row major linear index and a list of array extents
+\(dimensions) return a list of N-D array indicies."
+  (iter (for ext on (append (cdr extents) (list 1)))
+        (let* ((slab-size (apply #'* ext))
+               (idx (floor linear slab-size)) )
+          (decf linear (* slab-size idx))
+          (collect idx) )))
+
+(defmacro splice-@ (fn &rest args)
+  "Acts sort of like a mix of APPLY and the ,@ operator.
+Splice the @ marked lists into the sexp.  This is done by building a
+list and applying the function to it.  Because the function is applied
+to the arglist, you have to pass a function descriptor, not function
+name.
+
+\(splice-@ #'+ 1 2 @(list 3 4) 5 6) => 21"
+  (with-gensyms (new-args)
+    (let ((plain-args (iter (for form in args)
+                            (until (and (symbolp form)
+                                        (equalp (symbol-name form) "@") ))
+                            (collect form) )))
+      `(let* ((,new-args
+               (append
+                ,@(let (splice spliced?)
+                    (iter (for form in args)
+                          (cond (splice (tb:toggle splice) (collect form into final))
+                                ((and (symbolp form)
+                                      (equalp (symbol-name form) "@") )
+                                 (setf spliced? t)
+                                 (tb:toggle splice)
+                                 (when tmp
+                                   (collect (cons 'list tmp) into final)
+                                   (setf tmp nil) ))
+                                (spliced? (collect form into tmp)) )
+                          (finally
+                           (return (if tmp
+                                       (nconc final (list (cons 'list tmp)))
+                                       final ))))))))
+         (apply ,fn ,@plain-args ,new-args) ))))
+
+
+(defun copy-instance (instance)
+  "Make a copy of an instance of ony class."
+  (let* ((class (class-of instance))
+         (slots (closer-mop:class-slots class))
+         (new-instance (make-instance class)))
+    (loop for slot in slots do
+      (setf (slot-value new-instance (closer-mop:slot-definition-name slot))
+            (slot-value instance (closer-mop:slot-definition-name slot))))
+    new-instance))
+
+(defun expand-obj-fn (fn new-obj new-car slot &rest obj-or-more-conses)
+  (if (= 1 (length obj-or-more-conses))
+      (setf (slot-value new-obj slot)
+            (funcall fn new-car (slot-value (last1 obj-or-more-conses) slot)) )
+      (progn
+        (setf (slot-value new-obj slot)
+              (funcall fn new-car (slot-value (last1 obj-or-more-conses) slot)) )
+        (apply #'expand-obj-fn fn new-obj obj-or-more-conses) )))
+
+(defun obj-fn (fn arg slot &rest obj-or-more-conses)
+  "Create a new object where each slot listed is set equal to \(FN ARG
+\(SLOT-VALUE OBJ SLOT))."
+  (let ((new-obj (copy-instance (last1 obj-or-more-conses))))
+    (apply #'expand-obj-fn fn new-obj arg slot obj-or-more-conses)
+    new-obj ))
+
+(defun obj-cons (new-car slot &rest obj-or-more-conses)
+  "Return new object where specified SLOTs are modified by consing on
+the NEW-CAR."
+  (apply #'obj-fn #'cons new-car slot obj-or-more-conses) )
+
+(defun mp (&rest pathspecs)
+  "Merge pathnames and namestrings in a logical way."
+  ;;(cond ((
+  (cond ((null pathspecs)
+         *default-pathname-defaults* )
+        (t (merge-pathnames (first pathspecs)
+                            (apply #'mp (rest pathspecs)) ))))
+
+(defun find-fbound-symbols (package-name)
+  (let ((result nil)
+        (p (find-package package-name)))
+    (do-symbols (s p result)
+      (when (and (equal (symbol-package s) p)
+                 (fboundp s))
+        (push s result)))))
+
+(defun trace-package (package)
+  (iter (for sym in (find-fbound-symbols package))
+        (ignore-errors (eval `(trace ,sym))) )
+  (format nil "Package ~A is now traced." package))
+
+(defun untrace-package (package)
+  (eval `(untrace ,@(find-fbound-symbols package)))
+  (format nil "Package ~A is now untraced." package))
+
+(defun untrace-all ()
+  (untrace))
+
+(defun char-upcase-p (char)
+  (eql (char-upcase char) char) )
+(defun char-downcase-p (char)
+  (eql (char-downcase char) char) )
+
+(defun invert-case (string &key hyphen-to-underscore)
+  (let ((new-string (make-string (length string))))
+    (iter (for char in-sequence string)
+          (for i from 0)
+          (setf (aref new-string i)
+                (cond ((and hyphen-to-underscore (eql char #\-))
+                       #\_ )
+                      ((and hyphen-to-underscore (eql char #\_))
+                       #\- )
+                      ((char-upcase-p char)
+                       (char-downcase char) )
+                      (t (char-upcase char)) )))
+    new-string ))

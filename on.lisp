@@ -144,6 +144,8 @@
               :test test :key key )))
 
 (defun split-on (fn lst)
+  "Split the LiST at the first element that violates function, FN.
+Lists returned as multiple values."
   (unless (null lst)
     (multiple-value-bind (on off) (split-on fn (cdr lst))
       (if (funcall fn (car lst))
@@ -151,6 +153,9 @@
           (values on (cons (car lst) off)) ))))
 
 (defun split-if (fn lst)
+  "Split the LiST in two.  The first list contains elements of the
+list that satisfy function FN and the second contains elements that
+don't.  Lists are returned as multiple values."
   (let ((acc nil))
     (do ((src lst (cdr src)))
       ((or (null src) (funcall fn (car src)))
@@ -572,7 +577,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Macros returning functions
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro fn (expr)
     "Build a function like so:
 
@@ -605,7 +610,7 @@
                          `(,(rbuild (car fns))
                             ,(rec (cdr fns)) )
                          g )))
-            (rec fns) )))) )
+            (rec fns) )))) ;; )
 
 (defmacro alrec (rec &optional base)
   "Anaphoric List RECursor generator.  Return a function..."
@@ -664,7 +669,7 @@
            (lst (replace-at guide args free-vars)))
       (apply (car lst) (append (cdr lst) (nthcdr (length guide) free-vars))) )))
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro cut ((fn &rest args))
     (let ((new-args (get-cut-params args)))
       `(let ,(remove-if (fun (compose #'quotep #'cadr) #'contains-cut-slot) new-args)
@@ -700,7 +705,7 @@
             (map-into
               (make-list (length args))
               #'(lambda () (gensym "CUT-")) )
-            args )) )
+            args )) ;; )
 
 ;; ;; Examples
 
@@ -857,7 +862,7 @@
 ;;                          `(,(car cl) (let ,(cdr cl) ,@body)) )
 ;;                      clauses ))) )
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro condlet (clauses &body body)
     "Conditional bindings"
     (let ((bodfn (gensym "CONDLET-"))
@@ -880,7 +885,7 @@
 
   (defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
     `(,(car cl) (let ,(condlet-binds vars cl)
-                  (,bodfn ,@(mapcar #'cdr vars)) ))) )
+                  (,bodfn ,@(mapcar #'cdr vars)) )));; )
 
 (defmacro if3 (test t-case nil-case ?-case)
   "Like if except allows for an ambiguous result if the predicate returns ?"
@@ -923,7 +928,7 @@
                          `(funcall ,fnsym ,c) )
                      choices )))))
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro >case (expr &rest clauses)
     "Like case except each key is evaluated"
     (let ((g (gensym ">CASE-")))
@@ -935,7 +940,7 @@
     (let ((key (car cl)) (rest (cdr cl)))
       (cond ((consp key) `((in ,g ,@key) ,@rest))
             ((inq key t otherwise) `(t ,@rest))
-            (t (error "bad > case clause")) ))) )
+            (t (error "bad > case clause")) )));;  )
 
 ;; ;; Examples
 
@@ -1001,7 +1006,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Multiple value iteration
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro mvdo* (parm-cl test-cl &body body)
     (mvdo-gen parm-cl parm-cl test-cl body) )
 
@@ -1030,9 +1035,9 @@
           (let ((var/s (caar binds)) (expr (cadar binds)))
             (if (atom var/s)
               `(let ((,var/s ,expr)) ,rec)
-              `(multiple-value-bind ,var/s ,expr ,rec) ))))) )
+              `(multiple-value-bind ,var/s ,expr ,rec) )))));; )
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro mvpsetq (&rest args)
   (let* ((pairs (group args 2))
          (syms  (mapcar #'(lambda (p)
@@ -1061,7 +1066,7 @@
     (cond ((null x) y)
           ((null y) x)
           (t (list* (car x) (car y)
-                    (shuffle (cdr x) (cdr y)) )))) )
+                    (shuffle (cdr x) (cdr y)) )))) ;;)
 
 (defmacro mvdo (binds (test &rest result) &body body)
   (let ((label (gensym "MVDO-"))

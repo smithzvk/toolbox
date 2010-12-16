@@ -9,7 +9,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
 
   (defmacro dbind (pat seq &body body)
     (let ((gseq (gensym "DBIND-")))
@@ -47,7 +47,8 @@
                                   (if (consp (car b))
                                       (cdr b) ))
                               binds )
-                      body )))) ))
+                      body )))) ;))
+  )
 
 ;; Examples
 ;; ;;; Destructures and binds on any sequence of lisp objects.
@@ -120,25 +121,25 @@
 ;; Also it works by modifying your code to reference the location of the actual
 ;; memory instead of the local binding (like with-slots)
 
-(with-compilation-unit (:override nil)
-  (defmacro with-places (pat seq &body body)
-    (let ((gseq (gensym "WITH-PLACES-")))
-      `(let ((,gseq ,seq))
-         ,(wplac-ex (destruc pat gseq #'atom) body) )))
+;; (with-compilation-unit (:override nil)
+(defmacro with-places (pat seq &body body)
+  (let ((gseq (gensym "WITH-PLACES-")))
+    `(let ((,gseq ,seq))
+       ,(wplac-ex (destruc pat gseq #'atom) body) )))
 
-  (defun wplac-ex (binds body)
-    (if (null binds)
-        `(progn ,@body)
-        `(symbol-macrolet ,(mapcar #'(lambda (b)
-                                       (if (consp (car b))
-                                           (car b)
-                                           b ))
-                                   binds )
-                          ,(wplac-ex (mapcan #'(lambda (b)
-                                                 (if (consp (car b))
-                                                     (cdr b) ))
-                                             binds )
-                                     body )))) )
+(defun wplac-ex (binds body)
+  (if (null binds)
+      `(progn ,@body)
+      `(symbol-macrolet ,(mapcar #'(lambda (b)
+                                     (if (consp (car b))
+                                         (car b)
+                                         b ))
+                                 binds )
+         ,(wplac-ex (mapcan #'(lambda (b)
+                                (if (consp (car b))
+                                    (cdr b) ))
+                            binds )
+                    body )))) ;;)
 
 ;; Examples
 
@@ -191,7 +192,7 @@
 
 ;;; Compiled implementation
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
   (defmacro if-match (pat seq then &optional else)
     `(let ,(mapcar #'(lambda (v) `(,v ',(gensym "IF-MATCH-")))
                    (vars-in pat #'simple?) )
@@ -250,7 +251,7 @@
     (let ((fin (caadar (last rest))))
       (if (or (consp fin) (eq fin 'elt))
           `(= (length ,pat) ,(length rest))
-          `(> (length ,pat) ,(- (length rest) 2)) ))) )
+          `(> (length ,pat) ,(- (length rest) 2)) ))) ;; )
 
 ;; Interpreted implementation
 

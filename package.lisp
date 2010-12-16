@@ -1,8 +1,10 @@
 
 (defpackage :toolbox
   (:use :cl :anaphora :alexandria #:iter)
+  (:shadowing-import-from :anaphora #:it)
   (:shadowing-import-from :iter #:in #:for #:while)
   (:shadow #:with-gensyms #:shuffle #:getenv #:command-line #:quit)
+           ;; #:aif #:acond #:awhen )
   (:nicknames :tb)
   (:export ;;; On Lisp
            #:last1 #:single #:append1 #:conc1 #:mklist #:longer-than #:longer
@@ -59,14 +61,13 @@
            ;#:compile-not
            ;;; Misc
            #:do-file-by #:do-file-by-lines #:head #:tail
-           #:unroll-circular-list
+           #:unroll-circular-list #:roll-list
            #:by-elts #:defwrapper #:get-external-symbols #:use-package-excluding
            #:shadowing-use-package
            #:n-times #:mapcro
            #:nested-dotimes
            #:fsubvec
            #:strcat
-           #:copy-directory
            #:chop-array
            #:outer-truncate
            #:transpose-lists
@@ -77,10 +78,21 @@
            #:with-dynamic-environment
            #:lambda-in-dyn-env
            #:flet-in-dyn-env
+           #:dbp
+           #:nd-index
+           #:splice-@
+           #:copy-instance
+           #:obj-cons #:obj-fn
+           #:invert-case
+           #:char-upcase-p
+           #:char-downcase-p
+           ;; pathnames, directories, files
+           #:copy-directory #:mp
            ;;; Short-hand
            #:mvb #:mvl #:mve #:/.
            ;;; Numerics
            #:uflow->zero #:=~
+           #:sign #:find-root
            ;;; Number-theory
            #:*-mod #:expt-mod
            #:miller-rabin #:gen-prime
@@ -93,6 +105,8 @@
            #:choose #:permute
            ;;; String algorithms
            #:lcs #:levenshtein-dist
+           ;; ppcre extensions
+           #:reg-scan #:reg-scan-to-string
            ;;; Compatibility functions
            ;#:command-line ;#:raw-command-line #:getenv #:quit
            ;;; FCASE

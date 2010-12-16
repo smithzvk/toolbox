@@ -22,17 +22,17 @@
                      (r (safe-elt s1 i) (safe-elt s2 j)) ))))))
 (setf (symbol-function 'levenshtein-dist) (memoize #'levenshtein-dist :test #'equalp))
 
-#| Examples
+;; Examples
 
-(levenshtein-dist "Su" "Sa")
+;; (levenshtein-dist "Su" "Sa")
 
-(levenshtein-dist "saturday" "sunday")
+;; (levenshtein-dist "saturday" "sunday")
 
-(levenshtein-dist "kitten" "sitting")
+;; (levenshtein-dist "kitten" "sitting")
 
-(levenshtein-dist "funky" "monkey")
+;; (levenshtein-dist "funky" "monkey")
 
-|#
+
 
 ;;; Longest Common Subsequence
 
@@ -50,18 +50,36 @@
 ;;; ...made into an efficient implementation via one line of code
 (setf (symbol-function 'lcs) (memoize #'lcs :test #'equalp))
 
-#| Examples
+;; Examples
 
-(time (lcs "xaxbxcxdef" "abcdexfxgxhi"))
+;; (time (lcs "xaxbxcxdef" "abcdexfxgxhi"))
 
 ;;; This example needs the more relaxed equalp test or it will incurr all of the
 ;;; hash table overhead and none of the dynamic programming benefits, making it
 ;;; really crawl
-(time (lcs #(1 2 5 2 4 3 2 256 255 254) #(7 6 3 4 1 2 256 255 254) :base #()))
+;; (time (lcs #(1 2 5 2 4 3 2 256 255 254) #(7 6 3 4 1 2 256 255 254) :base #()))
 
 ;;; Do not try without memoization
-(time (lcs "asdfklj asdflkj dlaskd jlksd alkdj lakdsfj lsdkjdkjd flksjd"
-           "lkas djflkasjdflkasdj fsd skldjfkdj dkljdksdj fkldkdkdj slkdj f") )
+;; (time (lcs "asdfklj asdflkj dlaskd jlksd alkdj lakdsfj lsdkjdkjd flksjd"
+;;            "lkas djflkasjdflkasdj fsd skldjfkdj dkljdksdj fkldkdkdj slkdj f") )
 
-|#
+
+;;; PPCRE extensions
+(defun reg-scan (regex target-string &key (start 0) (end (length target-string)))
+  (multiple-value-bind (start end r-start r-end) (ppcre:scan regex target-string :start start :end end)
+    (if (< 0 (length r-start))
+        (values (aref r-start 0) (aref r-end 0))
+        nil )))
+
+(defun reg-scan-to-string (regex target-string &key (start 0) (end (length target-string)))
+  (multiple-value-bind (matches registers) (ppcre:scan-to-strings regex target-string :start start :end end)
+    (if (< 0 (length registers))
+        (aref registers 0)
+        nil )))
+
+(defun reg-scan-to-strings (regex target-string
+                                  &key (start 0) (end (length target-string)) )
+  (multiple-value-bind (matches registers)
+      (ppcre:scan-to-strings regex target-string :start start :end end)
+    (coerce registers 'list) ))
 

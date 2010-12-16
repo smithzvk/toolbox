@@ -20,18 +20,16 @@
                      md
                      tot ))))
 
-#|
 ;;; something like this would be nice
-(defmacro with-modulo-ops (modulus &body body)
-  (cond ((and (listp body) (atom (car body)))
-         (cond ((eql '+ (car body)) `(mod ,(with-modulo-ops ) ,modulus)
-                                    )))))
+;; (defmacro with-modulo-ops (modulus &body body)
+;;   (cond ((and (listp body) (atom (car body)))
+;;          (cond ((eql '+ (car body)) `(mod ,(with-modulo-ops ) ,modulus)
+;;                                     )))))
 
-(with-modulo-ops m
-  (+ 5 (* 342 (expt 2 500))) )
-  ==> (let ((m m))
-        (mod (+ 5 (mod (* 342 (expt-mod 2 500 m)) m)) m) ) 
-|#
+;; (with-modulo-ops m
+;;   (+ 5 (* 342 (expt 2 500))) )
+;;   ==> (let ((m m))
+;;         (mod (+ 5 (mod (* 342 (expt-mod 2 500 m)) m)) m) )
 
 ;;;;;;;;;;;;;;;;;;;
 ;;;; Primality ;;;;
@@ -97,7 +95,7 @@ prime (we use MILLER-RABIN for the test here)."
   (cond ((prime? n) n)
         (t (do ((i 2 (1+ i)))
                ((or (integerp (/ n i))
-                    (>= i (sqrt n)) )
+                    (>= i (isqrt n)) )
                 (list i (/ n i)) )))))
 
 ;;; Trial division O(sqrt(n)/2) about as bad as it can get
@@ -108,7 +106,7 @@ prime (we use MILLER-RABIN for the test here)."
                   (mapcar #'factor-trial-division
                           (do ((i 2 (1+ i)))
                               ((or (integerp (/ n i))
-                                   (> i (sqrt n)) )
+                                   (> i (isqrt n)) )
                                (list i (/ n i)) )))))))
 
 ;;; Shank's square forms factorization O(n^(1/4))
@@ -159,16 +157,16 @@ prime (we use MILLER-RABIN for the test here)."
                        (+ tot (* (car digits) (expt 10 pow))) ))))
       (reverse digits) 0 0) ) )
 
-#| Examples
+;;; Examples
 
-(n-digits 321)
-(n-digits (floor 1d100))
-(n-digits (expt 2 32)) ; 2^32 ~= 4e9
+;; (n-digits 321)
+;; (n-digits (floor 1d100))
+;; (n-digits (expt 2 32)) ; 2^32 ~= 4e9
 
-(mapcar #'(lambda (n) (get-digit 12345 n)) '(0 1 2 3 4))
+;; (mapcar #'(lambda (n) (get-digit 12345 n)) '(0 1 2 3 4))
 
-(digits<-number 12345)
-(number<-digits (digits<-number 54321))
+;; (digits<-number 12345)
+;; (number<-digits (digits<-number 54321))
 
-|#
+;;
 

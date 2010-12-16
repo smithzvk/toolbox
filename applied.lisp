@@ -567,7 +567,7 @@
 
 ;;; Compiled implementation
 
-(with-compilation-unit (:override nil)
+;; (with-compilation-unit (:override nil)
 
   (defmacro do-answers (query &body body)
     `(with-gensyms ,(append1 (vars-in query #'simple?) "DO-ANSWERS-")
@@ -607,7 +607,7 @@
       `(if (block ,tag
              ,(compile-query q `(return-from ,tag nil))
              t )
-           ,body ))) )
+           ,body ))) ;; )
 
 #|| Examples
 

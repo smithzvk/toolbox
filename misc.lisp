@@ -671,7 +671,7 @@ name.
                                        final ))))))))
          (apply ,fn ,@plain-args ,new-args) ))))
 
-
+#-abcl
 (defun copy-instance (instance)
   "Make a copy of an instance of ony class."
   (let* ((class (class-of instance))

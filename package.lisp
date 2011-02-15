@@ -13,7 +13,7 @@
            #:duplicate #:split-on #:split-if #:most #:best
            #:mostn #:map-> #:mapa-b #:map1-n #:map0-n #:mappend
            #:mapcars #:rmapcar #:readlist #:prompt #:break-loop
-           #:break-toplevel #:mkstr #:symb #:reread #:explode #:memoize
+           #:break-toplevel #:mkstr #:mkdstr #:symb #:reread #:explode #:memoize
            ;; Function builders (functions)
            #:compose #:fif #:fint #:fun #:lrec #:ttrav #:trec
            ;; Function builders (macros)

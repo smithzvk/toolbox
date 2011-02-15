@@ -356,6 +356,14 @@ don't.  Lists are returned as multiple values."
   (with-output-to-string (s)
     (dolist (a args) (princ a s)) ))
 
+(defun mkdstr (&rest args)
+  "MaKe STRing"
+  (let ((new-args (shuffle args (make-list (1- (length args))
+                                           :initial-element " " ))))
+    (with-output-to-string (s)
+      (dolist (a new-args)
+        (princ a s) ))))
+
 (defun symb (&rest args)
   (values (intern (apply #'mkstr args))) )
 

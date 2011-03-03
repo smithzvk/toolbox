@@ -144,23 +144,23 @@
               :test test :key key )))
 
 (defun split-on (fn lst)
-  "Split the LiST at the first element that violates function, FN.
-Lists returned as multiple values."
-  (unless (null lst)
-    (multiple-value-bind (on off) (split-on fn (cdr lst))
-      (if (funcall fn (car lst))
-          (values on (cons (car lst) off))
-          (values (cons (car lst) on) off) ))))
+  "Split the LiST at the first element where function, FN, is non-NIL.
+    Lists returned as multiple values."
+  (let ((acc nil))
+    (do ((src lst (cdr src)))
+        ((or (null src) (funcall fn (car src)))
+           (values (nreverse acc) src) )
+      (push (car src) acc) )))
 
 (defun split-if (fn lst)
   "Split the LiST in two.  The first list contains elements of the
 list that satisfy function FN and the second contains elements that
 don't.  Lists are returned as multiple values."
-  (let ((acc nil))
-    (do ((src lst (cdr src)))
-      ((or (null src) (funcall fn (car src)))
-       (values (nreverse acc) src) )
-      (push (car src) acc) )))
+  (unless (null lst)
+    (multiple-value-bind (on off) (split-if fn (cdr lst))
+      (if (funcall fn (car lst))
+          (values on (cons (car lst) off))
+          (values (cons (car lst) on) off) ))))
 
 ;; ;; Examples
 

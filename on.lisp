@@ -149,8 +149,8 @@ Lists returned as multiple values."
   (unless (null lst)
     (multiple-value-bind (on off) (split-on fn (cdr lst))
       (if (funcall fn (car lst))
-          (values (cons (car lst) on) off)
-          (values on (cons (car lst) off)) ))))
+          (values on (cons (car lst) off))
+          (values (cons (car lst) on) off) ))))
 
 (defun split-if (fn lst)
   "Split the LiST in two.  The first list contains elements of the

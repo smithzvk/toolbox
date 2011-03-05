@@ -159,8 +159,8 @@ don't.  Lists are returned as multiple values."
   (unless (null lst)
     (multiple-value-bind (on off) (split-if fn (cdr lst))
       (if (funcall fn (car lst))
-          (values on (cons (car lst) off))
-          (values (cons (car lst) on) off) ))))
+          (values (cons (car lst) on) off)
+          (values on (cons (car lst) off)) ))))
 
 ;; ;; Examples
 

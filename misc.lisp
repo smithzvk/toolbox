@@ -594,7 +594,14 @@ using dynamic variables at all?)."
          (lambda ,vars
            ,@body-decl
            (let ,(group (shuffle specials var-names) 2)
-             (declare (special ,@specials))
+             (declare (special ,@(iter (for sym in specials)
+                                       ;; We need to make sure we don't declare
+                                       ;; special any symbols from a locked
+                                       ;; package.
+                                       (when (not (member (symbol-package sym)
+                                                          (mapcar #'find-package
+                                                                  '(:cl) )))
+                                         (collect sym) ))))
              ,@body ))))))
 
 (defmacro flet-in-dyn-env (specials flets &body body)

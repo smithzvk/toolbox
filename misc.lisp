@@ -589,7 +589,7 @@ a better way to do what I am trying to do, I would like to know it (like not
 using dynamic variables at all?)."
   (let ((var-names (get-gensyms (length specials))))
     (multiple-value-bind (body-decl body)
-        (split-if (/. (x) (not (eql (car x) 'cl:declare))) body)
+        (split-on (/. (x) (not (eql (car x) 'cl:declare))) body)
       `(let ,(group (shuffle var-names specials) 2)
          (lambda ,vars
            ,@body-decl

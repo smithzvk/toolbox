@@ -1,0 +1,54 @@
+This is a collection of some functions, macros, and a few reader macros I have
+collected over the years.  It started as a merely copying the code from Paul
+Graham's text On Lisp, but has slowly grown in scope and utility.  Most of the
+stuff from On Lisp remains unchanged in on.lisp (clever, right?).
+
+This library has served many purposes in the past and has had many goals.
+
+Although this was not always the case, at this point I see this as a staging
+area for ideas that seem interesting and useful enough that I will want to use
+them in multiple projects, but are not thought out enough, or significant enough
+to warrant a separate library.  If I am not too lazy, these utilities work their
+way into separate files and, eventually, into separate packages.  Judging by the
+size of the library, this has not happened enough.
+
+Right now it consists of several files:
+
+anaphoric: A wrapper around Anaphora.  Basically adds Graham's extra anaphoric
+           constructs on top of the Anaphora ones.
+
+applied: A holding place for the very complicated parts of On Lisp, like the
+         lazy evaluator, the continuation system, and the "Query Compiler".
+         Basically a resting place for stuff that need more than 2 functions to
+         work.
+
+b-io: A little binary I/O facility I put together for work.  Not sure how well
+      it works really, especially in respect to moving between architectures.
+
+combinatorics: Simple math like permutations and combinations
+
+compat: A simple portability wrapper for things like commands line arguments and
+        a QUIT function.
+
+dbind: Graham's fancy DESTRUCTURING-BIND implementation.
+
+fcase: CLISP's FCASE macro so other implementations can use it as well.
+
+infix: The very common INFIX reader macro
+
+misc: Where I put most new stuff I think of.  This way I don't need to
+      categorize as I code.
+
+mvb: Some short aliases for MULTIPLE-VALUE-BIND and friends.
+
+number-theory: Some number theoretic algorithms.  Most important here is an
+               implementation of the Miller-Rabin primality test.
+
+numerics: A holding space for stuff that has to do with floating point
+          arithmetic and numerical analysis (like root finding).
+
+on: Paul Graham's collection of simple functions and macros from On Lisp.  Some
+    omitted.
+
+string-algs: Some common algorithms for strings, like Levenstien distance and
+             Longest Common Subsequence (LCS).

@@ -80,7 +80,7 @@
            #:lambda-in-dyn-env
            #:flet-in-dyn-env
            #:dbp
-           #:nd-index
+           #:nd-index #:linear-index
            #:splice-@
            #:copy-instance
            #:obj-cons #:obj-fn

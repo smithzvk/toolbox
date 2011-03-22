@@ -646,6 +646,12 @@ flags are set, maybe."
           (decf linear (* slab-size idx))
           (collect idx) )))
 
+(defun linear-index (index extents)
+  (apply #'+
+         (mapcar #'* index
+                 (iter (for spacing on extents)
+                       (collect (apply #'* (cdr spacing))) ))))
+
 (defmacro splice-@ (fn &rest args)
   "Acts sort of like a mix of APPLY and the ,@ operator.
 Splice the @ marked lists into the sexp.  This is done by building a

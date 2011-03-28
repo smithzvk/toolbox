@@ -107,7 +107,7 @@
            ;;; String algorithms
            #:lcs #:levenshtein-dist
            ;; ppcre extensions
-           #:reg-scan #:reg-scan-to-string
+           #:reg-scan #:reg-scan-to-string #:reg-scan-to-strings
            ;;; Compatibility functions
            ;#:command-line ;#:raw-command-line #:getenv #:quit
            ;;; FCASE

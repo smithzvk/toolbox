@@ -73,13 +73,14 @@
 
 (defun reg-scan-to-string (regex target-string &key (start 0) (end (length target-string)))
   (multiple-value-bind (matches registers) (ppcre:scan-to-strings regex target-string :start start :end end)
-    (if (< 0 (length registers))
-        (aref registers 0)
-        nil )))
+    (declare (ignore matches))
+    (values-list (iter (for el in-sequence registers)
+                       (collect el) ))))
 
 (defun reg-scan-to-strings (regex target-string
                                   &key (start 0) (end (length target-string)) )
   (multiple-value-bind (matches registers)
       (ppcre:scan-to-strings regex target-string :start start :end end)
+    (declare (ignore matches))
     (coerce registers 'list) ))
 

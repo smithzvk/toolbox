@@ -82,3 +82,13 @@ something a bit more useful."
 ;;   #+allegro (excl:exit)
 ;;   #-(or openmcl sbcl cmu allegro lispworks)
 ;;   (error "Don't know how to quit this Lisp.") )
+
+
+;;; Multiprocessing
+
+(defmacro without-interrupts (&body body)
+  #+sbcl `(sb-sys:without-interrupts ,@body)
+  #-(or sbcl)
+  (progn
+    (warn "I don't know how to disable interrupts in this implementation")
+    `(progn ,@body) ))

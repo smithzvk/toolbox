@@ -108,6 +108,8 @@
            #:lcs #:levenshtein-dist
            ;; ppcre extensions
            #:reg-scan #:reg-scan-to-string #:reg-scan-to-strings
+           ;; Iterate extensions
+           #:average #:averaging
            ;;; Compatibility functions
            #:without-interrupts
            ;#:command-line ;#:raw-command-line #:getenv #:quit

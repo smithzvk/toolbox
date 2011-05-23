@@ -1,14 +1,18 @@
 
 (in-package :toolbox)
 
-(iter:defmacro-clause (average expr)
+(iter:defmacro-clause (average expr
+                               &optional
+                               by (addition-op '#'+)
+                               using-divisor (division-op '#'/)
+                               initially (initial-value 0) )
   (let ((total (gensym))
         (count (gensym)) )
     `(progn
-       (with ,total = 0)
+       (with ,total = ,initial-value)
        (with ,count = 0)
-       (incf ,total ,expr)
+       (setf ,total (funcall ,addition-op ,total ,expr))
        (incf ,count)
-       (finally (return (/ ,total ,count))) )))
+       (finally (return (funcall ,division-op ,total ,count))) )))
 
 (iter:defsynonym averaging average)

@@ -7,6 +7,7 @@
   :components ((:file "package")
                (:file "on")
                (:file "anaphoric")
+               (:file "iterate")
                (:file "dbind")
                (:file "applied")
                (:file "mvb")

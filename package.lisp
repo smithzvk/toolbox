@@ -115,4 +115,6 @@
            ;#:command-line ;#:raw-command-line #:getenv #:quit
            ;;; FCASE
            #-clisp #:fcase
+           ;; Dynamic programming
+           #:defun-memoized #:defun-array-memoized #:memo-labels
            ))

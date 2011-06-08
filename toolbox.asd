@@ -18,6 +18,7 @@
                (:file "numerics")
                (:file "string-algs")
                (:file "number-theory")
+               (:file "dynamic-programming")
                (:file "infix") )
   :serial t
   :depends-on (:anaphora :alexandria :cl-fad :iterate :cl-ppcre

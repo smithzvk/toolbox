@@ -1,7 +1,7 @@
 
 (asdf:defsystem #:toolbox
   :name "toolbox"
-  :author "Zachary Smith <elzacho@gmail.com>"
+  :author "Zachary Smith <zachkostsmith@gmail.com>"
   :license "GPL"
   :description "Some functions and macros I have accumulated"
   :components ((:file "package")

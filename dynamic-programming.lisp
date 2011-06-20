@@ -76,7 +76,7 @@ For in-depth examples, see the documentation."
                        &key return-cache (persistent (not return-cache))
                        (arg-fn ''identity)
                        access-fn setter-fn
-                       (cache-test #'second)
+                       (cache-test ''second)
                        (storage '(make-hash-table :test 'equal)) )
       (ensure-list name-spec)
     (with-gensyms (cache args processed-args query sol)

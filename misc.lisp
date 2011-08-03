@@ -455,10 +455,8 @@ Ex:
             (chop-array vec length skip (+ start length skip) end) )))
 
 (defun outer-truncate (x &optional (divisor 1))
-  (nif x
-      (1+ (truncate (/ x divisor)))
-      0
-      (1- (truncate (/ x divisor))) ))
+  (let ((rat (/ x divisor)))
+    (* (sign rat) (ceiling (abs rat))) ))
 
 (defun combine-pathnames (pn1 pn2)
   (pathname (strcat (namestring pn1) (namestring pn2))) )

@@ -469,13 +469,17 @@ Ex:
                 (push el (aref out i)) ))
     (map 'list #'nreverse out) ))
 
-;; Could be dangerous.  I am defining a read macro here that was
-;; originally written by Yury Sulsky
+;; Could be dangerous.  I am defining a (slightly modified) reader macro here
+;; that was originally written by Yury Sulsky
 
-;;add python-style multi-line strings
+;; add python-style multi-line strings except with four quotes so indentation
+;; works properly
 (eval-when (:execute :load-toplevel :compile-toplevel)
 
-  (let ((normal-string-reader (get-macro-character #\")))
+  (let ((normal-string-reader
+          ;; Grab the original reader from the original readtable (is this the
+          ;; right thing to do?)
+          (get-macro-character #\" (copy-readtable nil))))
     (declare (type function normal-string-reader))
     (defun read-multiline-string (stream c)
       (let ((buffer ()))
@@ -485,19 +489,29 @@ Ex:
         (read-char stream)
 
         (when (not (char= #\" (peek-char nil stream)))
-          (return-from read-multiline-string
-            ""))
+          (return-from read-multiline-string "") )
         (read-char stream)
 
-        (do ((chars (list (read-char stream)
-                          (read-char stream)
-                          (read-char stream))
-                    (cdr (nconc chars (list (read-char stream))))))
-            ((every #'(lambda (c) (eq c #\")) chars)
-             (coerce (nreverse buffer) 'string))
-          (push (car chars) buffer)))))
+        ;; Eat one last quote if given.  This means that we can use three or
+        ;; four consequtive double quotes to designate a multi-line string
+        (let ((four-quote-string
+                (if (char= #\" (peek-char nil stream))
+                    (progn (read-char stream) t)
+                    nil )))
+          (do ((chars (if four-quote-string
+                          (list (read-char stream)
+                                (read-char stream)
+                                (read-char stream)
+                                (read-char stream) )
+                          (list (read-char stream)
+                                (read-char stream)
+                                (read-char stream) ))
+                      (cdr (nconc chars (list (read-char stream))))))
+              ((every #'(lambda (c) (eq c #\")) chars)
+               (coerce (nreverse buffer) 'string))
+            (push (car chars) buffer))))))
 
-  (set-macro-character #\" #'read-multiline-string))
+  (set-macro-character #\" #'read-multiline-string) )
 
 (defun rgb<-wavelength (wl &key integer-max (gamma 0.80))
   "Translate a wavelength of light into a rough approximation of what

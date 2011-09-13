@@ -1,9 +1,10 @@
+* My Toolbox Library
+
 This is a collection of some functions, macros, and a few reader macros I have
 collected over the years.  It started as a merely copying the code from Paul
 Graham's text On Lisp, but has slowly grown in scope and utility.  Most of the
-stuff from On Lisp remains unchanged in on.lisp (clever, right?).
-
-This library has served many purposes in the past and has had many goals.
+stuff from On Lisp remains unchanged in on.lisp (clever, right?) and a few of
+the more complicated bits found their ways to their own files.
 
 Although this was not always the case, at this point I see this as a staging
 area for ideas that seem interesting and useful enough that I will want to use
@@ -11,6 +12,8 @@ them in multiple projects, but are not thought out enough, or significant enough
 to warrant a separate library.  If I am not too lazy, these utilities work their
 way into separate files and, eventually, into separate packages.  Judging by the
 size of the library, this has not happened enough.
+
+* What's in it?
 
 Right now it consists of several files:
 
@@ -52,3 +55,20 @@ on: Paul Graham's collection of simple functions and macros from On Lisp.  Some
 
 string-algs: Some common algorithms for strings, like Levenstien distance and
              Longest Common Subsequence (LCS).
+
+* Portability
+
+I don't really test this library for portability, or at all.  I do however, use
+several parts of it commonly from an assortment of the FOSS Lisp implementations
+and rarely have issues.  My guess is that it is quite cross implementation
+except for the bits that aren't (the ones littered with implementation dependent
+conditional macros).
+
+* License
+
+As stated, most of this is not mine at all, but rather a big chunk of stuff from
+the book On Lisp and a few things I've aggregated from around the Internet (and
+a few original bits).  As such, the license is probably quite complicated as it
+probably depends on what the original author intended.  I tried to give hints as
+to the origin of the code in the source.  For the stuff I did, I will use a
+3-clause BSD license.

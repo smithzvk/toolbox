@@ -88,7 +88,10 @@ something a bit more useful."
 
 (defmacro without-interrupts (&body body)
   #+sbcl `(sb-sys:without-interrupts ,@body)
-  #-(or sbcl)
+  #+ecl `(mp:without-interrupts ,@body)
+  #+cmucl `(system:without-interrupts ,@body)
+  #+ccl `(ccl:without-interrupts ,@body)
+  #-(or sbcl ecl cmucl ccl)
   (progn
     (warn "I don't know how to disable interrupts in this implementation")
     `(progn ,@body) ))

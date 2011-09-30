@@ -5,7 +5,7 @@
                                &optional
                                by (addition-op '#'+)
                                using-divisor (division-op '#'/)
-                               initially (initial-value 0) )
+                               initial-value (initial-value 0) )
   (let ((total (gensym))
         (count (gensym)) )
     `(progn

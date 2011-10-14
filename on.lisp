@@ -362,8 +362,9 @@ don't.  Lists are returned as multiple values."
 
 (defun mkdstr* (delimiter &rest args)
   "MaKe arbitrarily Delimited STRing"
-  (let ((new-args (shuffle args (make-list (1- (length args))
-                                           :initial-element delimiter ))))
+  (let ((new-args
+          (and args (shuffle args (make-list (1- (length args))
+                                             :initial-element delimiter )))))
     (with-output-to-string (s)
       (dolist (a new-args)
         (princ a s) ))))

@@ -22,5 +22,6 @@
                (:file "infix") )
   :serial t
   :depends-on (:anaphora :alexandria :cl-fad :iterate :cl-ppcre
+                         :pythonic-string-reader
                          #-abcl :closer-mop ))
 

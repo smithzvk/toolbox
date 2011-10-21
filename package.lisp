@@ -118,3 +118,5 @@
            ;; Dynamic programming
            #:defun-memoized #:defun-array-memoized #:memo-labels
            ))
+
+(pythonic-string-reader:enable-pythonic-string-syntax)

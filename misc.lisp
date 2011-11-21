@@ -512,27 +512,21 @@ matter, this function is not for you."
           tree ))
 
 (defun format-ext (str control-string &rest args)
-  "Just like format, except convert certain elements in the arg list
-into forms more readable by other programs.  For instance, print all
-number types in the 1e0 format \(i.e. no fractions or 1d0s), and print
-pathnames as namestrings.
+  "Just like format, except convert certain elements in the arg list into forms
+more readable by other programs.  For instance, print all number types in the
+1e0 format \(i.e. no fractions or 1d0s), and print pathnames as namestrings.
 
-Format has all sorts of nooks and crannies, so I bet that this
-facility can be broken without too much effort."
+Format has all sorts of nooks and crannies, so I bet that this facility can be
+broken without too much effort."
   (let ((*read-default-float-format* 'long-float))
     (apply #'format str control-string
            (funcall
             (ttrav #'cons (/. (x) (typecase x
+                                   (integer x)
                                    (number (float x 0L0))
                                    (pathname (namestring x))
-                                   (t x) )))
-            args ))))
-;;                     (maptree (/. (x)
-;;                                (typecase x
-;;                                  (float (float x 0L0))
-;;                                  (pathname (namestring x))
-;;                                  (t x) ))
-;;                              args ))))
+                                   (t x))))
+            args))))
 
 (defmacro lambda-in-dyn-env (specials vars &body body)
   "Define an anonymous function with lambda list VARS and BODY which executes

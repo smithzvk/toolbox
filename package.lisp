@@ -117,6 +117,7 @@
            #-clisp #:fcase
            ;; Dynamic programming
            #:defun-memoized #:defun-array-memoized #:memo-labels
-           #:bg))
+           #:bg
+           #:with-instrumented-function))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)

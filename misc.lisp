@@ -727,4 +727,17 @@ the NEW-CAR."
 
 (defmacro bg (&body form) `(bt:make-thread (lambda () ,@form)))
 
+(defmacro with-instrumented-function ((function args &body instrumentation-body)
+                                      &body body)
+  (let ((original (gensym)))
+    `(let ((,original (symbol-function ',function)))
+       (setf (symbol-function ',function)
+             (lambda ,args
+               (flet ((,function (&rest args)
+                        (apply ,original args)))
+                 ,@instrumentation-body)))
+       (unwind-protect
+            (progn ,@body)
+         (setf (symbol-function ',function) ,original)))))
+
 

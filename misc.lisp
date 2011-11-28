@@ -724,3 +724,7 @@ the NEW-CAR."
                        (char-downcase char) )
                       (t (char-upcase char)) )))
     new-string ))
+
+(defmacro bg (&body form) `(bt:make-thread (lambda () ,@form)))
+
+

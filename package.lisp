@@ -79,8 +79,7 @@
            #:with-dynamic-environment
            #:lambda-in-dyn-env
            #:flet-in-dyn-env
-           #:dbp
-           #:nd-index #:linear-index
+           #:dbp 
            #:splice-@
            #:copy-instance
            #:obj-cons #:obj-fn

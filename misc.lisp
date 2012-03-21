@@ -599,21 +599,6 @@ flags are set, maybe."
              "~%DBP:~{~%~{~S ~^= ~}~}"
              (mapcar (/. (x y) (list x y)) ',forms (list ,@forms) ))))
 
-(defun nd-index (linear extents)
-  "Given a row major linear index and a list of array extents
-\(dimensions) return a list of N-D array indicies."
-  (iter (for ext on (append (cdr extents) (list 1)))
-        (let* ((slab-size (apply #'* ext))
-               (idx (floor linear slab-size)) )
-          (decf linear (* slab-size idx))
-          (collect idx) )))
-
-(defun linear-index (index extents)
-  (apply #'+
-         (mapcar #'* index
-                 (iter (for spacing on extents)
-                       (collect (apply #'* (cdr spacing))) ))))
-
 (defmacro splice-@ (fn &rest args)
   "Acts sort of like a mix of APPLY and the ,@ operator.
 Splice the @ marked lists into the sexp.  This is done by building a

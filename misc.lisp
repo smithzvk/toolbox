@@ -520,13 +520,18 @@ Format has all sorts of nooks and crannies, so I bet that this facility can be
 broken without too much effort."
   (let ((*read-default-float-format* 'long-float))
     (apply #'format str control-string
-           (funcall
-            (ttrav #'cons (/. (x) (typecase x
-                                   (integer x)
-                                   (number (float x 0L0))
-                                   (pathname (namestring x))
-                                   (t x))))
-            args))))
+           (labels
+               ((convert-to-external (tree)
+                  (cond ((null tree) nil)
+                        ((atom tree)
+                         (typecase tree
+                            (integer tree)
+                            (number (float tree 0L0))
+                            (pathname (namestring tree))
+                            (t tree)))
+                        ((consp tree)
+                         (mapcar #'convert-to-external tree)))))
+             (convert-to-external args)))))
 
 (defmacro lambda-in-dyn-env (specials vars &body body)
   "Define an anonymous function with lambda list VARS and BODY which executes

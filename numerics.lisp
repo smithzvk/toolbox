@@ -28,16 +28,21 @@ conditions"
 
 (defun find-root (fn low high &optional (precission 1d-6))
   "Find a root of FN between LOW and HIGH to within PRECISSION."
-  (unless (/= (sign (funcall fn low)) (sign (funcall fn high)))
-    (error "In order for this to work, (FN LOW) and (FN HIGH) need to be on opposite sides of zero.") )
-  (let ((sign (sign (funcall fn low))))
-    (labels
-        ((%find-root (low high)
-           (if (< (- high low) precission) (/ (+ low high) 2)
-               (let* ((midway (/ (+ low high) 2))
-                      (val (* sign (funcall fn midway))) )
-                 (if (> val 0)
-                     (%find-root midway high)
-                     (%find-root low midway) )))))
-      (%find-root low high) )))
+  (let ((f-lo (funcall fn low))
+        (f-hi (funcall fn high)))
+    (cond ((= 0 f-lo) low)
+          ((= 0 f-hi) high)
+          ((= (sign f-lo) (sign f-hi))
+           (error "In order for this to work, (FN LOW) and (FN HIGH) need to be on opposite sides of zero."))
+          (t
+           (let ((sign (sign f-lo)))
+             (labels
+                 ((%find-root (low high)
+                    (if (< (- high low) precission) (/ (+ low high) 2)
+                        (let* ((midway (/ (+ low high) 2))
+                               (val (* sign (funcall fn midway))))
+                          (if (> val 0)
+                              (%find-root midway high)
+                              (%find-root low midway))))))
+               (%find-root low high)))))))
 

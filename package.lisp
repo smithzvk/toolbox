@@ -96,7 +96,6 @@
            ;;; Number-theory
            #:*-mod #:expt-mod
            #:miller-rabin #:gen-prime
-           #:n-digits #:get-digit #:digits<-number #:number<-digits
            #:prime?
            #:factor-trial-division #:coprime-factor-trial-division
            #:factor #:coprime-factor

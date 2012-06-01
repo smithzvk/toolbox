@@ -23,6 +23,7 @@
   :serial t
   :depends-on (:anaphora :alexandria :cl-fad :iterate :cl-ppcre
                          :pythonic-string-reader
+                         :cl-primality
                          :bordeaux-threads
                          #-abcl :closer-mop ))
 

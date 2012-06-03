@@ -1,6 +1,6 @@
 
 (defpackage :toolbox
-  (:use :cl :anaphora :alexandria #:iter :cl-primality)
+  (:use :cl :anaphora :alexandria #:iter :cl-primality :cl-factoring)
   (:shadowing-import-from :anaphora #:it)
   (:shadowing-import-from :iter #:in #:for #:while)
   (:shadow #:with-gensyms #:shuffle #:getenv #:command-line #:quit)
@@ -97,8 +97,7 @@
            #:*-mod #:expt-mod
            #:miller-rabin #:gen-prime
            #:primep
-           #:factor-trial-division #:coprime-factor-trial-division
-           #:factor #:coprime-factor
+           #:factor
            ;;; Combinatorics
            #-clisp #:!
            #:choose #:permute

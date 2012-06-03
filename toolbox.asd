@@ -24,6 +24,7 @@
   :depends-on (:anaphora :alexandria :cl-fad :iterate :cl-ppcre
                          :pythonic-string-reader
                          :cl-primality
+                         :cl-factoring
                          :bordeaux-threads
                          #-abcl :closer-mop ))
 

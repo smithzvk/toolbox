@@ -9,7 +9,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-when (:compile-toplevel)
-(defconstant +unforced+ (gensym "UNFORCED-")) )
+(defconstant +unforced+ (if (boundp '+unforced+)
+                            +unforced+
+                            (gensym "UNFORCED-")))
 
 (defstruct delay forced closure)
 

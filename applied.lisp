@@ -8,7 +8,6 @@
 ;;;; Lazy evaluation ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(eval-when (:compile-toplevel)
 (defconstant +unforced+ (if (boundp '+unforced+)
                             +unforced+
                             (gensym "UNFORCED-")))

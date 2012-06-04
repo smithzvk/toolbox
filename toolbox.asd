@@ -17,9 +17,8 @@
 ;               (:file "b-io")
                (:file "numerics")
                (:file "string-algs")
-               (:file "number-theory")
                (:file "dynamic-programming")
-               (:file "infix") )
+               (:file "number-theory"))
   :serial t
   :depends-on (:anaphora :alexandria :cl-fad :iterate :cl-ppcre
                          :pythonic-string-reader

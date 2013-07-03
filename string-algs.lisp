@@ -71,11 +71,15 @@
         (values (aref r-start 0) (aref r-end 0))
         nil )))
 
+;; What I use these for can often be obtained via register-groups-bind, but I
+;; cannot use it for exactly that purpose, so these remain.
+
 (defun reg-scan-to-string (regex target-string &key (start 0) (end (length target-string)))
-  (multiple-value-bind (matches registers) (ppcre:scan-to-strings regex target-string :start start :end end)
-    (declare (ignore matches))
-    (values-list (iter (for el in-sequence registers)
-                       (collect el) ))))
+  (ppcre:register-groups-bind (a) (regex target-string :start start :end end) a))
+  ;; (multiple-value-bind (matches registers) (ppcre:scan-to-strings regex target-string :start start :end end)
+  ;;   (declare (ignore matches))
+  ;;   (values-list (iter (for el in-sequence registers)
+  ;;                      (collect el) ))))
 
 (defun reg-scan-to-strings (regex target-string
                                   &key (start 0) (end (length target-string)) )

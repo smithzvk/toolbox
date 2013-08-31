@@ -599,10 +599,12 @@ is to make removing debugging print statement simpler since, unlike
 PRINT, DBP is only used for debugging prints.  In the future I might
 make a conditional macroexpand that will only print if certain debug
 flags are set, maybe."
-  `(progn
-     (format *error-output*
-             "~%DBP:~{~%~{~S ~^= ~}~}"
-             (mapcar (/. (x y) (list x y)) ',forms (list ,@forms) ))))
+  (let ((result (gensym)))
+    `(let ((,result (list ,@forms)))
+       (format *error-output*
+               "~{~%~{~S ~^= ~}~}"
+               (mapcar (/. (x y) (list x y)) ',forms ,result))
+       (first (last ,result)))))
 
 (defmacro splice-@ (fn &rest args)
   "Acts sort of like a mix of APPLY and the ,@ operator.

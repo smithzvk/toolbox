@@ -73,7 +73,7 @@
            #:outer-truncate
            #:transpose-lists
            #:combine-pathnames
-           #:rgb<-wavelength
+           #:rgb<-wavelength #:rgb-to-hsv #:hsv-to-rgb
            #:maptree
            #:format-ext
            #:with-dynamic-environment

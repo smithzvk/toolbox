@@ -502,6 +502,75 @@ ourselves with this hack.  This is stolen from Dan Bruton."
             (t ;; Either in the middle or out of the visible range
              (mapcar (/. (x) (adjust x 1)) rgb) )))))
 
+;;; Some color conversion stolen from hexrgb (Emacs)
+(defun rgb-to-hsv (rgb)
+  "Convert RED, GREEN, BLUE components to HSV (hue, saturation, value).
+Each input component is 0.0 to 1.0, inclusive.
+Returns a list of HSV components of value 0.0 to 1.0, inclusive."
+  (destructuring-bind (red green blue) rgb
+    (let* ((min    (min red green blue))
+           (max    (max red green blue))
+           (value  max)
+           (delta  (- max min))
+           hue saturation)
+      (if (=~ 1d-5 0.0 delta)
+          (setq hue         0.0
+                saturation  0.0)        ; Gray scale - no color; only value.
+          (if (ignore-errors (setq saturation  (/ delta max)))
+              (if (=~ 1d-5 0d0 saturation)
+                  (setq hue         0.0
+                        saturation  0.0) ; Again, no color; only value.
+                  ;; Color
+                  (setq hue  (if (=~ 1d-5 red max)
+                                 (/ (- green blue) delta) ; Between yellow & magenta.
+                                 (if (=~ 1d-5 green max)
+                                     (+ 2.0 (/ (- blue red) delta)) ; Between cyan & yellow.
+                                     (+ 4.0 (/ (- red green) delta)))) ; Between magenta & cyan.
+                        hue  (/ hue 6.0)))
+              (setq hue         0.0 ; Div by zero (max=0): H:=0, S:=0. (Hue undefined.)
+                    saturation  0.0)))
+      (when (< hue 0.0) (setq hue  (+ hue 1.0)))
+      (when (> hue 1.0) (setq hue  (- hue 1.0)))
+      (list hue saturation value))))
+
+(defun hsv-to-rgb (hsv)
+  "Convert HUE, SATURATION, VALUE components to RGB (red, green, blue).
+Each input component is 0.0 to 1.0, inclusive.
+Returns a list of RGB components of value 0.0 to 1.0, inclusive."
+  (destructuring-bind (hue saturation value) hsv
+    (let (red green blue int-hue fract pp qq ww)
+      (if (=~ 1d-5 0.0 saturation)
+          (setq red    value
+                green  value
+                blue   value)           ; Gray
+          (progn
+            (setq hue      (* hue 6.0)  ; Sectors: 0 to 5
+                  int-hue  (floor hue)
+                  fract    (- hue int-hue)
+                  pp       (* value (- 1 saturation))
+                  qq       (* value (- 1 (* saturation fract)))
+                  ww       (* value (- 1 (* saturation (- 1 (- hue int-hue))))))
+            (case int-hue
+              ((0 6) (setq red    value
+                           green  ww
+                           blue   pp))
+              (1 (setq red    qq
+                       green  value
+                       blue   pp))
+              (2 (setq red    pp
+                       green  value
+                       blue   ww))
+              (3 (setq red    pp
+                       green  qq
+                       blue   value))
+              (4 (setq red    ww
+                       green  pp
+                       blue   value))
+              (otherwise (setq red    value
+                               green  pp
+                               blue   qq)))))
+      (list red green blue))))
+
 (defun maptree (function tree)
   "This calls FUNCTION on each element of TREE that is an atom.  If
 you want FUNCTION to operate on lists or any type of cons for that

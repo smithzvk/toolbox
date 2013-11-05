@@ -152,6 +152,20 @@
            (values (nreverse acc) src) )
       (push (car src) acc) )))
 
+(defun split-on-every (fn list &key (remove-initial-nil t))
+  "Split the list at every place where fn is non-nil."
+  (let ((result '(nil))
+        ret)
+    (iter (for el :in list)
+      (cond ((funcall fn el)
+             (push (list el) result))
+            (t (push el (first result)))))
+    (iter (for list :in result)
+      (push (nreverse list) ret))
+    (if (and remove-initial-nil (null (first ret)))
+        (rest ret)
+        ret)))
+
 (defun split-if (fn lst)
   "Split the LiST in two.  The first list contains elements of the
 list that satisfy function FN and the second contains elements that

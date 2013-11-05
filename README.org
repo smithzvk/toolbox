@@ -73,3 +73,11 @@ a few original bits).  As such, the license is probably quite complicated as it
 probably depends on what the original author intended.  I tried to give hints as
 to the origin of the code in the source.  For the stuff I did, I will use a
 3-clause BSD license.
+
+FCASE is directly taken from CLISP, which means it is under some version of the
+GPL.
+
+The stuff in On lisp is under whatever license PG wanted.
+
+I tried to note where I took various pieces that I didn't write either in the
+file or in the commit message for that piece of code.

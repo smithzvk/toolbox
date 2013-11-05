@@ -117,6 +117,7 @@
            #:bg
            #:with-instrumented-function
            #:with-instrumented-functions
+           #:with-return-work-so-far-restart
            #:with-file-output
            #:with-files-for-output))
 

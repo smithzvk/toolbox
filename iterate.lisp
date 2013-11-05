@@ -16,3 +16,19 @@
        (finally (return (funcall ,division-op ,total ,count))) )))
 
 (iter:defsynonym averaging average)
+(defmacro with-return-work-so-far-restart (&body body)
+  "This is useful for iterate as it will allow you to get partial results
+\(e.g. if your loop hangs or is simply taking too long this will allow you to
+get what has been done so far).
+
+Use this something like this:
+
+  (iter (for i :below 100)
+    (tb:with-return-work-so-far-restart
+      (sleep 1)
+      (collecting i)))
+"
+  `(restart-case
+       (progn ,@body)
+     (return-work-so-far ()
+       (finish))))

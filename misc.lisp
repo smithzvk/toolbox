@@ -811,6 +811,25 @@ the NEW-CAR."
            ,@body))
       `(with-instrumented-function (,function ,args ,@instrumentation-body)
          ,@body)))
+
+(defun random-fn (max &key one-to-one (bounded-input t))
+  "Return a random function \(in the mathematical sense of the word) that maps
+integers to integers in the range [0, max-1].  The options ONE-TO-ONE and
+BOUNDED-INPUT determine how the domain is mapped to the range.
+
+This function has the down side that it is not deterministic when used with the
+same random state.  I am not sure how to do this other than calculating all of
+the values up front, which seems to be a waste."
+  (let ((used-domain (make-hash-table)))
+        ;; (used-range (make-hash-table)))
+    (lambda (x)
+      (when bounded-input
+        (assert (< x max)))
+      (aif (gethash x used-domain)
+           it
+           (let ((ret (random max)))
+             (setf (gethash x used-domain) ret)
+             ret)))))
 ;;; File output utilities
 
 (defmacro with-file-output ((stream filespec

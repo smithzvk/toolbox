@@ -121,6 +121,7 @@
            #:with-return-work-so-far-restart
            #:with-file-output
            #:with-files-for-output
-           #:on-every-nth-iteration))
+           #:on-every-nth-iteration
+           #:random-fn))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)

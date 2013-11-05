@@ -13,6 +13,19 @@ to warrant a separate library.  If I am not too lazy, these utilities work their
 way into separate files and, eventually, into separate packages.  Judging by the
 size of the library, this has not happened enough.
 
+* I'd like to use this library
+
+Don't.
+
+My suggestion is to take the bits you like and make a library of your own.
+Better yet, if you turn a piece of this into something that is general purpose,
+publish it and please let me know.  I will remove the functionality here and use
+your library as a dependency (like I did with Infix, Alexandria, CL-Primality,
+and others).
+
+Note that the licensing here is a bit weird, see the last section, but my stuff
+is non-copyleft Free Software, so feel free to use it for whatever.
+
 * What's in it?
 
 Right now it consists of several files:

@@ -830,6 +830,42 @@ the values up front, which seems to be a waste."
            (let ((ret (random max)))
              (setf (gethash x used-domain) ret)
              ret)))))
+(defun max-fn (fn &rest args)
+  "Return the `x' value that maximizes the `y' value."
+  (cond ((null args)
+         (error "Not enough terms."))
+        ((null (rest args))
+         (first args))
+        (t (let ((first-args (first args)))
+             (%max-fn fn (rest args) (funcall fn first-args) first-args)))))
+
+(defun %max-fn (fn args fn-best best)
+  (if (null args)
+      best
+      (let* ((first-args (first args))
+             (fn-val (funcall fn first-args)))
+        (if (< fn-best fn-val)
+            (%max-fn fn (rest args) fn-val first-args)
+            (%max-fn fn (rest args) fn-best best)))))
+
+(defun min-fn (fn &rest args)
+  "Return the `x' value that minimizes the `y' value."
+  (cond ((null args)
+         (error "Not enough terms."))
+        ((null (rest args))
+         (first args))
+        (t (let ((first-args (first args)))
+             (%min-fn fn (rest args) (funcall fn first-args) first-args)))))
+
+(defun %min-fn (fn args fn-best best)
+  (if (null args)
+      best
+      (let* ((first-args (first args))
+             (fn-val (funcall fn first-args)))
+        (if (> fn-best fn-val)
+            (%min-fn fn (rest args) fn-val first-args)
+            (%min-fn fn (rest args) fn-best best)))))
+
 ;;; File output utilities
 
 (defmacro with-file-output ((stream filespec

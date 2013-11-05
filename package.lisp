@@ -118,6 +118,7 @@
            #:with-instrumented-function
            #:with-instrumented-functions
            #:split-on-every
+           #:max-fn #:min-fn
            #:with-return-work-so-far-restart
            #:with-file-output
            #:with-files-for-output

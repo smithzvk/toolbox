@@ -802,3 +802,12 @@ the NEW-CAR."
          (setf (symbol-function ',function) ,original)))))
 
 
+(defmacro with-instrumented-functions (((function args &body instrumentation-body)
+                                        &rest functions)
+                                       &body body)
+  (if functions
+      `(with-instrumented-function (,function ,args ,@instrumentation-body)
+         (with-instrumented-functions ,functions
+           ,@body))
+      `(with-instrumented-function (,function ,args ,@instrumentation-body)
+         ,@body)))

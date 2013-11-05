@@ -115,6 +115,7 @@
            ;; Dynamic programming
            #:defun-memoized #:defun-array-memoized #:memo-labels
            #:bg
-           #:with-instrumented-function))
+           #:with-instrumented-function
+           #:with-instrumented-functions))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)

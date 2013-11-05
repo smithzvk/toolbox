@@ -116,6 +116,8 @@
            #:defun-memoized #:defun-array-memoized #:memo-labels
            #:bg
            #:with-instrumented-function
-           #:with-instrumented-functions))
+           #:with-instrumented-functions
+           #:with-file-output
+           #:with-files-for-output))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)

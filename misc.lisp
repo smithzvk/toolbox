@@ -811,3 +811,36 @@ the NEW-CAR."
            ,@body))
       `(with-instrumented-function (,function ,args ,@instrumentation-body)
          ,@body)))
+;;; File output utilities
+
+(defmacro with-file-output ((stream filespec
+                             &rest options
+                             &key (element-type 'base-char)
+                                  if-exists
+                                  if-does-not-exist
+                                  (external-format :default))
+                            &body body)
+  "Similar to using WITH-OPEN-FILE for doing output, but don't attempt to clean
+up partial file write \(I want those!)."
+  (declare (ignorable element-type if-exists if-does-not-exist external-format))
+  `(let ((,stream (open ,filespec :direction :output ,@options)))
+     (unwind-protect
+          (progn ,@body)
+       (close ,stream))))
+
+(defmacro with-files-for-output (((stream filespec
+                                  &rest options
+                                  &key (element-type 'base-char)
+                                       if-exists
+                                       if-does-not-exist
+                                       (external-format :default))
+                                  &rest more)
+                                 &body body)
+  "Similar to using WITH-OPEN-FILE for doing output (except take multiple
+binding/open forms), but don't attempt to clean up partial file write \(I want
+those!)."
+  (declare (ignorable element-type if-exists if-does-not-exist external-format))
+  `(with-file-output (,stream ,filespec ,@options)
+     ,(if more
+          `(with-files-for-output ,more ,@body)
+          `(progn ,@body))))

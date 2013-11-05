@@ -889,30 +889,35 @@ don't.  Lists are returned as multiple values."
 ;;                          `(,(car cl) (let ,(cdr cl) ,@body)) )
 ;;                      clauses ))) )
 
-;; (with-compilation-unit (:override nil)
-  (defmacro condlet (clauses &body body)
-    "Conditional bindings"
-    (let ((bodfn (gensym "CONDLET-"))
-          (vars (mapcar #'(lambda (v) (cons v (gensym "CONDLET-")))
-                        (remove-duplicates
-                          (mapcar (lambda (x) (if (listp x) (car x) x))
-                                  (mappend #'cdr clauses) )))))
-      `(labels ((,bodfn ,(mapcar #'car vars)
-                        ,@body ))
-         (cond ,@(mapcar #'(lambda (cl)
-                             (condlet-clause vars cl bodfn) )
-                         clauses )))))
+(defmacro condlet (clauses &body body)
+  "Conditional bindings"
+  (error "This is broken, you really need to fix it.")
+  ;; We need to allow for nil bindings for atoms in the binding list.
+  (let ((bodfn (gensym "CONDLET-"))
+        (vars (mapcar #'(lambda (v) (cons v (gensym "CONDLET-")))
+                      (remove-duplicates
+                       (mapcar (lambda (x) (if (listp x) (car x) x))
+                               (mappend #'cdr clauses) )))))
+    `(labels ((,bodfn ,(mapcar #'car vars)
+                ,@body ))
+       (cond ,@(mapcar #'(lambda (cl)
+                           (condlet-clause vars cl bodfn) )
+                       clauses )))))
 
-  (defun condlet-binds (vars cl)
-    (mapcar #'(lambda (bindform)
-                (if (consp bindform)
-                    (cons (cdr (assoc (car bindform) vars))
-                          (cdr bindform) )))
-            (cdr cl) ))
+(defun condlet-binds (vars cl)
+  (mapcar #'(lambda (bindform)
+              (if (consp bindform)
+                  (cons (cdr (assoc (car bindform) vars))
+                        (cdr bindform) )))
+          (cdr cl) ))
 
-  (defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
-    `(,(car cl) (let ,(condlet-binds vars cl)
-                  (,bodfn ,@(mapcar #'cdr vars)) )));; )
+(defun condlet-clause (vars cl bodfn) ;; Modified to remove unecessary binds
+  `(,(car cl) (let ,(condlet-binds vars cl)
+                (,bodfn ,@(mapcar
+                           ;; This needs to either send the bound symbols, or
+                           ;; send the unbound original symbol through.  This
+                           ;; CDR doesn't cut it
+                           #'cdr vars)) )));; )
 
 (defmacro if3 (test t-case nil-case ?-case)
   "Like if except allows for an ambiguous result if the predicate returns ?"

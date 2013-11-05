@@ -17,13 +17,18 @@ size of the library, this has not happened enough.
 
 Right now it consists of several files:
 
-anaphoric: A wrapper around Anaphora.  Basically adds Graham's extra anaphoric
-           constructs on top of the Anaphora ones.
+on: Paul Graham's collection of simple functions and macros from On Lisp.  Some
+    omitted.
+
+dbind: Graham's fancy DESTRUCTURING-BIND implementation.
 
 applied: A holding place for the very complicated parts of On Lisp, like the
          lazy evaluator, the continuation system, and the "Query Compiler".
          Basically a resting place for stuff that need more than 2 functions to
          work.
+
+anaphoric: A wrapper around Anaphora.  Basically adds Graham's extra anaphoric
+           constructs on top of the Anaphora ones.
 
 b-io: A little binary I/O facility I put together for work.  Not sure how well
       it works really, especially in respect to moving between architectures.
@@ -33,25 +38,21 @@ combinatorics: Simple math like permutations and combinations
 compat: A simple portability wrapper for things like commands line arguments and
         a QUIT function.
 
-dbind: Graham's fancy DESTRUCTURING-BIND implementation.
-
 fcase: CLISP's FCASE macro so other implementations can use it as well.
-
-infix: The very common INFIX reader macro
 
 misc: Where I put most new stuff I think of.  This way I don't need to
       categorize as I code.
 
 mvb: Some short aliases for MULTIPLE-VALUE-BIND and friends.
 
-number-theory: Some number theoretic algorithms.  Most important here is an
-               implementation of the Miller-Rabin primality test.
+number-theory: Some number theoretic algorithms like EXPT-MOD and *-MOD.  The
+               prime number stuff has been moved to its own library,
+               Cl-Primality (also see Cl-Factoring for a factoring library).
 
 numerics: A holding space for stuff that has to do with floating point
           arithmetic and numerical analysis (like root finding).
 
-on: Paul Graham's collection of simple functions and macros from On Lisp.  Some
-    omitted.
+iterate: Some extensions for Iterate that make it a bit more powerful/useful.
 
 string-algs: Some common algorithms for strings, like Levenstien distance and
              Longest Common Subsequence (LCS).

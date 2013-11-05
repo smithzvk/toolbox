@@ -16,6 +16,14 @@
        (finally (return (funcall ,division-op ,total ,count))) )))
 
 (iter:defsynonym averaging average)
+
+(defmacro on-every-nth-iteration (n &body body)
+  (let ((index (gensym)))
+    `(progn (for ,index from 0)
+            (when (= ,index ,n)
+              (setf ,index 0)
+              ,@body ))))
+
 (defmacro with-return-work-so-far-restart (&body body)
   "This is useful for iterate as it will allow you to get partial results
 \(e.g. if your loop hangs or is simply taking too long this will allow you to

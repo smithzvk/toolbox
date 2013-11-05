@@ -119,6 +119,7 @@
            #:with-instrumented-functions
            #:with-return-work-so-far-restart
            #:with-file-output
-           #:with-files-for-output))
+           #:with-files-for-output
+           #:on-every-nth-iteration))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)

@@ -866,6 +866,19 @@ the values up front, which seems to be a waste."
             (%min-fn fn (rest args) fn-val first-args)
             (%min-fn fn (rest args) fn-best best)))))
 
+(defun save-core (core-fn)
+  (progn
+    #+sbcl
+    (let ((fork-result (sb-posix:fork)))
+      (case fork-result
+	(-1 (error "fork failed"))
+	(0 (sb-ext:save-lisp-and-die core-fn :toplevel #'main :executable t))
+	(otherwise (sb-posix:wait)))
+      (format t "stand-alone core ~a saved" core-fn))
+    #-sbcl
+    (error "not available on this lisp")
+    (values)))
+
 ;;; File output utilities
 
 (defmacro with-file-output ((stream filespec

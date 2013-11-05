@@ -123,6 +123,7 @@
            #:with-file-output
            #:with-files-for-output
            #:on-every-nth-iteration
-           #:random-fn))
+           #:random-fn
+           #:save-core))
 
 (pythonic-string-reader:enable-pythonic-string-syntax)
